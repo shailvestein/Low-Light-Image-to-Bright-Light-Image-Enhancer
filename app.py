@@ -5,72 +5,65 @@ import numpy as np
 # --- Page Configuration ---
 st.set_page_config(page_title="AI Image Enhancer", layout="wide")
 
-def enhance_image(image, brightness, contrast, sharpness):
-    """Applies basic enhancements to the image."""
-    enhancer = ImageEnhance.Brightness(image)
-    image = enhancer.enhance(brightness)
+def adjust_rgb(image, r_weight, g_weight, b_weight):
+    """Adjusts individual RGB channels of the image."""
+    # Convert to array to manipulate channels
+    img_array = np.array(image).astype(np.float32)
     
-    enhancer = ImageEnhance.Contrast(image)
-    image = enhancer.enhance(contrast)
+    # Apply weights to each channel
+    img_array[:, :, 0] *= r_weight  # Red
+    img_array[:, :, 1] *= g_weight  # Green
+    img_array[:, :, 2] *= b_weight  # Blue
     
-    enhancer = ImageEnhance.Sharpness(image)
-    image = enhancer.enhance(sharpness)
+    # Clip values to stay within [0, 255] and convert back to uint8
+    img_array = np.clip(img_array, 0, 255).astype(np.uint8)
+    return Image.fromarray(img_array)
+
+def enhance_image(image, brightness, contrast, sharpness, r_w, g_w, b_w):
+    # 1. Apply RGB Channel Weights first
+    image = adjust_rgb(image, r_w, g_w, b_w)
+    
+    # 2. Apply standard enhancements
+    image = ImageEnhance.Brightness(image).enhance(brightness)
+    image = ImageEnhance.Contrast(image).enhance(contrast)
+    image = ImageEnhance.Sharpness(image).enhance(sharpness)
     return image
 
 # --- Sidebar UI ---
-st.sidebar.header("Settings")
-st.sidebar.info("Adjust the sliders to enhance your photo.")
+st.sidebar.header("Standard Settings")
+brightness = st.sidebar.slider("Brightness", 0.5, 3.0, 1.0)
+contrast = st.sidebar.slider("Contrast", 0.5, 3.0, 1.0)
+sharpness = st.sidebar.slider("Sharpness", 0.5, 5.0, 1.0)
 
-brightness = st.sidebar.slider("Brightness", 0.01, 5.0, 1.0)
-contrast = st.sidebar.slider("Contrast", 0.01, 5.0, 1.0)
-sharpness = st.sidebar.slider("Sharpness", 0.01, 5.0, 1.0)
+st.sidebar.header("Color Channels (RGB)")
+r_weight = st.sidebar.slider("Red Channel", 0.0, 2.0, 1.0)
+g_weight = st.sidebar.slider("Green Channel", 0.0, 2.0, 1.0)
+b_weight = st.sidebar.slider("Blue Channel", 0.0, 2.0, 1.0)
 
 # --- Main UI ---
 st.title("✨ Image Enhancement Lab")
-st.write("Upload a low-light or faded photo to see the transformation.")
 
-uploaded_file = st.sidebar.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.sidebar.file_uploader("Upload an image...", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # Load Image
     original_img = Image.open(uploaded_file).convert("RGB")
     
-    # Process Image
-    enhanced_img = enhance_image(original_img, brightness, contrast, sharpness)
+    # Process
+    enhanced_img = enhance_image(original_img, brightness, contrast, sharpness, r_weight, g_weight, b_weight)
 
-    # --- Display Side-by-Side ---
+    # Side-by-Side
     col1, col2 = st.columns(2)
-
     with col1:
         st.subheader("Original")
-        st.image(original_img, use_container_width=True, caption="Original Input")
-
+        st.image(original_img, use_container_width=True)
     with col2:
         st.subheader("Enhanced")
-        st.image(enhanced_img, use_container_width=True, caption="Enhanced Output")
+        st.image(enhanced_img, use_container_width=True)
 
-    # --- Download Option ---
-    st.divider()
-    st.subheader("Download Results")
-    # Convert PIL image to bytes for download
+    # Download
     import io
     buf = io.BytesIO()
     enhanced_img.save(buf, format="JPEG")
-    byte_im = buf.getvalue()
-
-    st.download_button(
-        label="Download Enhanced Image",
-        data=byte_im,
-        file_name="enhanced_image.jpg",
-        mime="image/jpeg"
-    )
+    st.download_button("Download Image", buf.getvalue(), "enhanced.jpg", "image/jpeg")
 else:
-    st.warning("Please upload an image file in the sidebar to get started.")
-
-# --- Footer/Instructions ---
-with st.expander("How it works"):
-    st.write("""
-        This tool uses the PIL (Python Imaging Library) to adjust pixel intensity and contrast. 
-        For low-light images, increasing Brightness and Contrast usually yields the best results.
-    """)
-
+    st.info("Upload an image in the sidebar to start adjusting colors.")
