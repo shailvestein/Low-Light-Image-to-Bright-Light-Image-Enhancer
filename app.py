@@ -1,5 +1,5 @@
 import streamlit as st
-# from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance
 import numpy as np
 
 # --- Page Configuration ---
