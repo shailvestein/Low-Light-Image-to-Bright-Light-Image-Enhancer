@@ -21,9 +21,9 @@ def enhance_image(image, brightness, contrast, sharpness):
 st.sidebar.header("Settings")
 st.sidebar.info("Adjust the sliders to enhance your photo.")
 
-brightness = st.sidebar.slider("Brightness", 0.5, 10.0, 1.0)
-contrast = st.sidebar.slider("Contrast", 0.5, 10.0, 1.0)
-sharpness = st.sidebar.slider("Sharpness", 0.5, 50.0, 1.0)
+brightness = st.sidebar.slider("Brightness", 0.5, 50.0, 1.0)
+contrast = st.sidebar.slider("Contrast", 0.5, 50.0, 1.0)
+sharpness = st.sidebar.slider("Sharpness", 0.5, 10.0, 1.0)
 
 # --- Main UI ---
 st.title("✨ Image Enhancement Lab")
