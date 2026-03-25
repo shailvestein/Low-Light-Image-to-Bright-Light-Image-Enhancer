@@ -23,10 +23,6 @@ import cv2
 import gdown
 import streamlit as st
 
-batch_size=8
-patch_size=256
-random_samples = 16
-
 device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 print(f"Device: {device}")
 
@@ -111,25 +107,6 @@ class RetinexUNet(nn.Module):
         return enhanced, illumination
 
 
-class UNetTrainer:
-    def __init__(self, model, weights_name):
-        self.model = model
-        self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model.to(self.device)
-        self.best_model_path = weights_name
-
-
-    def predict(self, x):
-        self.model.eval()
-        with torch.no_grad():
-            return self.model(x.to(self.device))
-
-    def load_best_model(self):
-        if not self.best_model_path:
-            raise ValueError("No best model found. Please train the model first.")
-        self.model.load_state_dict(torch.load(self.best_model_path))
-
-
 #----------------------------------------------------------------------------------#
 #                    Z E R O D C E    N E T    M O D E L                           #
 #----------------------------------------------------------------------------------#
@@ -175,25 +152,6 @@ class ZeroDCENet(nn.Module):
         return y, alpha_map
 
 
-class DCETrainer:
-    def __init__(self, model, weights_name):
-        self.model = model
-        self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model.to(self.device)
-        self.best_model_path = weights_name
-
-    def predict(self, x):
-        with torch.no_grad():
-            return self.model(x.to(self.device))
-
-
-    def load_best_model(self):
-        if not self.best_model_path:
-            raise ValueError("No best model found. Please train the model first.")
-        self.model.load_state_dict(torch.load(self.best_model_path))
-
-
-
 #----------------------------------------------------------------------------------#
 #                    F U S I O N    N E T    M O D E L                             #
 #----------------------------------------------------------------------------------#
@@ -228,8 +186,8 @@ class FusionNet(nn.Module):
     def __init__(self, retinex_model, zerodce_model):
         super(FusionNet, self).__init__()
 
-        self.retinex_net = retinex_model.model
-        self.zerodce_net = zerodce_model.model
+        self.retinex_net = retinex_model
+        self.zerodce_net = zerodce_model
 
         # Pre-trained models freeze for eval mode
         for param in self.retinex_net.parameters():
@@ -283,23 +241,6 @@ class FusionNet(nn.Module):
         return torch.clamp(final_output, 0, 1), alpha_map
 
 
-class FusedTrainer:
-    def __init__(self, model, weights_name):
-        self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = model.to(self.device)
-        self.best_model_path = weights_name
-        self.denoiser = DenoiseBlock(3).to(self.device)
-        self.color_corrector = ColorCorrection().to(self.device)
-
-    def predict(self, x):
-        with torch.no_grad():
-            return self.model(x.to(self.device))
-
-
-    def load_best_model(self):
-        if not self.best_model_path:
-            raise ValueError("No best model found. Please train the model first.")
-        self.model.load_state_dict(torch.load(self.best_model_path))
 
 
 #----------------------------------------------------------------------------------#
@@ -320,16 +261,29 @@ def download_weights(file_id, model_name):
         with st.spinner(f"Downloading model {model_name} weights from Google Drive..."):
             gdown.download(url, model_name, quiet=False)
     return model_name
+from model_arch import FusedModel  # Sirf model architecture class
 
 def load_weights():
+    model = FusedModel() # Khali model banayein
+    state_dict = torch.load("best-fused-model.pth", map_location='cpu') # Weights load karein
+    model.load_state_dict(state_dict) # Weights bhar dein
+    model.eval()
+    return model
+def load_weights():
     download_weights(unet_model_id, unet_model_name)
-    unet = UNetTrainer(RetinexUNet(), unet_model_name)
-
+    unet = RetinexUNet()
+    state_dict = torch.load(unet_model_name, map_location=device)
+    unet.load_state_dict(state_dict)
+    
     download_weights(dcenet_model_id, dcenet_model_name)
-    dcenet = DCETrainer(ZeroDCENet(n_iter=8), dcenet_model_name)
+    dcenet = ZeroDCENet(n_iter=8)
+    state_dict = torch.load(dcenet_model_name, map_location=device)
+    dcenet.load_state_dict(state_dict)
 
     download_weights(fused_model_id, fused_model_name)
-    fusednet = FusedTrainer(FusionNet(unet, dcenet), fused_model_name)
+    fusednet = FusionNet(unet, dcenet)
+    state_dict = torch.load(fused_model_name, map_location=device)
+    fusednet.load_state_dict(state_dict)
 
     return fusednet
 
