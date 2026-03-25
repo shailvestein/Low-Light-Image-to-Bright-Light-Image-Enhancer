@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 class Enhancer:
     def __init__(self, model, batch_size):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = model.to(self.device)
+        self.model = model.model.to(self.device)
         self.batch_size = batch_size
     
     def get_ultra_sharp_mask(self, patch_size, fade_width=64):
@@ -54,21 +54,21 @@ class Enhancer:
 
     def enhance_image(self, img):
         start_time = time.time()
-        # low_img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         patch_size = 512 # Run inference over this patch size
         stride = 256  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
         pad_h = (patch_size - h % stride) % stride + (patch_size - stride)
         pad_w = (patch_size - w % stride) % stride + (patch_size - stride)
-        img_padded = cv2.copyMakeBorder(low_img_rgb, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
-        nh, nw, _ = img_padded.shape
+        img = cv2.copyMakeBorder(img, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
+        nh, nw, _ = img.shape
         # Extract Patches
         patches = []
         coords = []
         for i in range(0, nh - patch_size + 1, stride):
             for j in range(0, nw - patch_size + 1, stride):
-                p = img_padded[i:i+patch_size, j:j+patch_size, :]
+                p = img[i:i+patch_size, j:j+patch_size, :]
                 patches.append(torch.from_numpy(p).permute(2, 0, 1).float() / 255.0)
                 coords.append((i, j))
         # Inference
@@ -80,5 +80,4 @@ class Enhancer:
                 enhanced_list.extend([p.cpu() for p in out])
         output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
         return output, time.time()-start_time
-
 
