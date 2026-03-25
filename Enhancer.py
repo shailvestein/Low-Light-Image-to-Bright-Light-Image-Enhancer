@@ -70,7 +70,7 @@ class Enhancer:
                 patches.append(torch.from_numpy(p).permute(2, 0, 1).float() / 255.0)
                 coords.append((i, j))
         # Inference
-        loader = DataLoader(patches, self.batch_size=8)
+        loader = DataLoader(patches, self.batch_size)
         enhanced_list = []
         with torch.no_grad():
             for batch in loader:
