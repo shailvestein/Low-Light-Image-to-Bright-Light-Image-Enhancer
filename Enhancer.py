@@ -76,7 +76,7 @@ class Enhancer:
         enhanced_list = []
         with torch.no_grad():
             for batch in loader:
-                out, _ = self.model.predict(batch.to(device))
+                out, _ = self.model(batch.to(device))
                 enhanced_list.extend([p.cpu() for p in out])
         output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
         return output, time.time()-start_time
