@@ -50,10 +50,10 @@ class Enhancer:
         # Final Conversion and Precise Crop
         final_img = (img_np * 255.0).astype(np.uint8)
         return final_img[:h, :w, :]
-    
+
     def enhance_image(self, img):
-		img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-		patch_size = 512 # Run inference over this patch size
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        patch_size = 512 # Run inference over this patch size
         stride = 256  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
@@ -77,6 +77,5 @@ class Enhancer:
                 out, _ = self.model.predict(batch.to(device))
                 enhanced_list.extend([p.cpu() for p in out])
         return self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
-    
-    
-    
+
+
