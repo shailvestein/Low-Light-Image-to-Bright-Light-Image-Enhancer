@@ -55,10 +55,7 @@ if uploaded_file is not None:
 
     # --- FANCY PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
-        time.sleep(0.4)
         st.write("🧪 Analyzing scene lighting...")
-        time.sleep(0.4)  
-        st.write("Done!")
         ai_output, p_time = enhancer.enhance_image(img_input)
         ai_output = cv2.cvtColor(ai_output, cv2.COLOR_BGR2RGB) # Blue tint fix
         
