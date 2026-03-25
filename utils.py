@@ -323,7 +323,7 @@ def download_weights(file_id, model_name):
 
 def load_weights():
     download_weights(unet_model_id, unet_model_name)
-    unet = UNetTrainer(RetinexNet(), unet_model_name)
+    unet = UNetTrainer(RetinexUNet(), unet_model_name)
 
     download_weights(dcenet_model_id, dcenet_model_name)
     dcenet = DCENetTrainer(ZeroDCENet(n_iter=8), dcenet_mode_name)
