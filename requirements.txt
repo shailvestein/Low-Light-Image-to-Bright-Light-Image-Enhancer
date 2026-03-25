@@ -1,7 +1,17 @@
 streamlit==1.32.0
-Pillow==10.2.0
-numpy==1.26.4
-opencv-python-headless==4.9.0.80
-torch==2.2.0
-torchvision==0.17.0
 streamlit-image-comparison==0.0.4
+
+# Core Machine Learning
+torch==2.2.1
+torchvision==0.17.0
+numpy==1.26.4
+
+# Computer Vision & Image Processing
+Pillow==10.2.0
+opencv-python==4.9.0.80
+opencv-python-headless==4.9.0.80
+kornia==0.7.2
+
+# Specialized LLIE Metrics & Losses
+piq==0.8.0
+lpips==0.1.4
