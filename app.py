@@ -61,7 +61,7 @@ if uploaded_file is not None:
     img_input = pre_process_resize(img_rgb_raw, target_width=1200)
 
     # STEP 2: AI Enhancement
-    with st.spinner("AI is working..."):
+    with st.spinner("Enhancing you image..."):
         ai_output, p_time = enhancer.enhance_image(img_input) 
         ai_output = cv2.cvtColor(ai_output, cv2.COLOR_BGR2RGB)
 
