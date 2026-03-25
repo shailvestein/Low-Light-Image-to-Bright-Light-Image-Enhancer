@@ -61,7 +61,7 @@ class Enhancer:
         # Padding to match stride logic
         pad_h = (patch_size - h % stride) % stride + (patch_size - stride)
         pad_w = (patch_size - w % stride) % stride + (patch_size - stride)
-        img_padded = cv2.copyMakeBorder(low_img_rgb, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
+        img_padded = cv2.copyMakeBorder(low_img, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
         nh, nw, _ = img_padded.shape
         # Extract Patches
         patches = []
