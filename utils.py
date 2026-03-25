@@ -317,9 +317,8 @@ fused_model_name = "best-fused-model.pth"
 def download_weights(file_id, model_name):
     url = f'https://drive.google.com/uc?id={file_id}'
     if not os.path.exists(model_name):
-        with st.spinner(f"Downloading model {model_name} weights from Google Drive...", end=''):
+        with st.spinner(f"Downloading model {model_name} weights from Google Drive..."):
             gdown.download(url, model_name, quiet=False)
-    print(f"done!")
     return model_name
 
 def load_weights():
