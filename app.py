@@ -40,12 +40,12 @@ def pre_process_resize(image_rgb, target_width=1200):
     return cv2.resize(image_rgb, (target_width, int(target_width * aspect_ratio)), interpolation=cv2.INTER_AREA)
 
 # --- 5. UI HEADER ---
-st.markdown("<h1 style='text-align: center; color: #00d4ff;'>📸 DeepSense AI Restoration</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #888;'>Pro-grade Low Light Enhancement Powered by Neural Networks</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #00d4ff;'>📸 DeepSense AI Light Restoration</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #888;'>Pro-grade Low-Light Image Enhancement Powered by PyTorch Neural Networks</p>", unsafe_allow_html=True)
 
 # --- 6. UPLOADER ---
 uploader_key = f"uploader_{st.session_state.reset_counter}"
-uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], key=uploader_key)
+uploaded_file = st.file_uploader("Upload Low-light Image", type=["jpg", "jpeg", "png"], key=uploader_key)
 
 if uploaded_file is not None:
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
