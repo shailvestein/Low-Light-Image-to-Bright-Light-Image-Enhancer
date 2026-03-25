@@ -78,11 +78,11 @@ if active_file:
     col_a, col_b = st.columns(2)
     with col_a:
         st.markdown("#### 📸 ORIGINAL")
-        st.image(img_rgb, width=True)
+        st.image(img_rgb, width=stretch)
 
     with col_b:
         st.markdown("#### 🚀 AI ENHANCED")
-        st.image(ai_output, width=True)
+        st.image(ai_output, width=stretch)
         
         # --- FIXED DOWNLOAD LOGIC ---
         # Sirf tabhi encode karega jab ai_output mil chuka ho
