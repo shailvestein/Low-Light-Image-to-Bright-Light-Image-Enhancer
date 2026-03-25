@@ -21,7 +21,7 @@ import lpips
 
 import cv2
 import gdown
-
+import streamlit as st
 
 batch_size=8
 patch_size=256
