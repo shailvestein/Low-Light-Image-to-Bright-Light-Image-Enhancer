@@ -68,7 +68,7 @@ class Enhancer:
         coords = []
         for i in range(0, nh - patch_size + 1, stride):
             for j in range(0, nw - patch_size + 1, stride):
-                p = img_padded[i:i+patch_size, j:j+patch_size, :]
+                p = img[i:i+patch_size, j:j+patch_size, :]
                 patches.append(torch.from_numpy(p).permute(2, 0, 1).float() / 255.0)
                 coords.append((i, j))
         # Inference
