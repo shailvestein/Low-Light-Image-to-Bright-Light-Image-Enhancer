@@ -228,8 +228,8 @@ class FusionNet(nn.Module):
     def __init__(self, retinex_model, zerodce_model):
         super(FusionNet, self).__init__()
 
-        self.retinex_net = retinex_model
-        self.zerodce_net = zerodce_model
+        self.retinex_net = retinex_model.model
+        self.zerodce_net = zerodce_model.model
 
         # Pre-trained models freeze for eval mode
         for param in self.retinex_net.parameters():
