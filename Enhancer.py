@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import cv2
+import time
 from torch.utils.data import DataLoader
 
 class Enhancer:
@@ -52,6 +53,7 @@ class Enhancer:
         return final_img[:h, :w, :]
 
     def enhance_image(self, img):
+        start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         patch_size = 512 # Run inference over this patch size
         stride = 256  # Essential 50% overlap for spline blending
@@ -76,6 +78,7 @@ class Enhancer:
             for batch in loader:
                 out, _ = self.model.predict(batch.to(device))
                 enhanced_list.extend([p.cpu() for p in out])
-        return self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
+        output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
+        return output, time.time()-start_time
 
 
