@@ -56,7 +56,7 @@ if uploaded_file is not None:
     # Read Image
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     img_bgr = cv2.imdecode(file_bytes, 1)
-
+    img_rgb_raw = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     # STEP 1: Resize to 1200px
     img_input = pre_process_resize(img_rgb, target_width=1200)
 
