@@ -16,3 +16,6 @@ kornia==0.7.2
 # Specialized LLIE Metrics & Losses
 piq==0.8.0
 lpips==0.1.4
+
+# To download models from GDrive
+gdown
