@@ -71,7 +71,7 @@ if active_file:
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
     with st.spinner("🤖 AI Model is analyzing..."):
-        ai_output, p_time = enhancer.enhance(img_rgb)
+        ai_output, p_time = enhancer.enhance_img(img_rgb)
 
     st.markdown(f"### ✨ Result Ready (`{p_time}s`)")
 
