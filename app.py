@@ -10,17 +10,26 @@ from Enhancer import Enhancer
 # --- 1. SET PAGE CONFIG ---
 st.set_page_config(layout="wide", page_title="AI Photo Lab")
 
-# --- 2. MODEL LOADING (CACHED) ---
+# --- 2. SESSION STATE FOR RESET ---
+# Agar key nahi hai toh 0 se shuru karein
+if 'reset_counter' not in st.session_state:
+    st.session_state.reset_counter = 0
+
+def trigger_reset():
+    # Counter badhane se file_uploader ki 'key' badal jayegi aur wo khali ho jayega
+    st.session_state.reset_counter += 1
+    # Purana processed data clear karne ke liye session state ko clean karein (optional)
+    st.rerun()
+
+# --- 3. MODEL LOADING (CACHED) ---
 @st.cache_resource
 def get_enhancer():
-    # Weights load karke enhancer return karega
     model = load_weights()
-    # batch_size=1 low-memory devices ke liye safest hai
     return Enhancer(model, batch_size=1)
 
 enhancer = get_enhancer()
 
-# --- 3. HELPER FUNCTIONS ---
+# --- 4. HELPER FUNCTIONS ---
 def get_webp_bytes(image_rgb, quality=85):
     img = Image.fromarray(image_rgb)
     buf = io.BytesIO()
@@ -33,15 +42,15 @@ def pre_process_resize(image_rgb, target_width=1200):
         return image_rgb
     aspect_ratio = h / w
     target_height = int(target_width * aspect_ratio)
-    # INTER_AREA is best for shrinking to 1200px
     return cv2.resize(image_rgb, (target_width, target_height), interpolation=cv2.INTER_AREA)
 
-# --- 4. UI HEADER ---
+# --- 5. UI HEADER ---
 st.title("🚀 AI Image Restoration Lab")
-st.write("Upload a dark or low-light image to enhance it using Neural Networks.")
 
-# --- 5. IMAGE UPLOAD ---
-uploaded_file = st.file_uploader("Drop your image here", type=["jpg", "jpeg", "png"])
+# --- 6. IMAGE UPLOAD (With Dynamic Key) ---
+# Jab reset button dabega, key 'uploader_1', 'uploader_2' aise badlegi, jisse reset pakka hoga
+uploader_key = f"uploader_{st.session_state.reset_counter}"
+uploaded_file = st.file_uploader("Drop your image here", type=["jpg", "jpeg", "png"], key=uploader_key)
 
 if uploaded_file is not None:
     # Read Image
@@ -49,46 +58,40 @@ if uploaded_file is not None:
     img_bgr = cv2.imdecode(file_bytes, 1)
     img_rgb_raw = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
-    # STEP 1: Resize to 1200px BEFORE AI (As requested)
+    # STEP 1: Resize to 1200px
     img_input = pre_process_resize(img_rgb_raw, target_width=1200)
 
     # STEP 2: AI Enhancement
-    with st.spinner("AI is working on your image..."):
-        # Dhyan dein: Agar enhancer.enhance_image sirf image return karta hai:
+    with st.spinner("AI is working..."):
         ai_output, p_time = enhancer.enhance_image(img_input) 
 
-    # --- 6. DISPLAY SIDE-BY-SIDE ---
+    # --- 7. DISPLAY SIDE-BY-SIDE ---
     st.success(f"Restoration Complete in {p_time} seconds!")
     
     col1, col2 = st.columns(2)
-
     with col1:
         st.subheader("Original (1200px)")
-        # 'width=stretch' makes it responsive and removes warnings
         st.image(img_input, width='stretch')
 
     with col2:
         st.subheader("AI Enhanced")
         st.image(ai_output, width='stretch')
 
-    # --- 7. DOWNLOAD SECTION ---
+    # --- 8. DOWNLOAD & RESET SECTION ---
     st.divider()
-    try:
-        # Optimized WebP Download
-        webp_data = get_webp_bytes(ai_output, quality=90)
-        
-        st.download_button(
-            label="📩 DOWNLOAD ENHANCED IMAGE (WebP)",
-            data=webp_data,
-            file_name="deepsense_result.webp",
-            mime="image/webp"
-        )
-    except Exception as e:
-        st.error(f"Download error: {e}")
+    
+    # Download Button
+    webp_data = get_webp_bytes(ai_output, quality=90)
+    st.download_button(
+        label="📩 DOWNLOAD ENHANCED IMAGE",
+        data=webp_data,
+        file_name="deepsense_result.webp",
+        mime="image/webp"
+    )
 
-    # Reset
-    if st.button("🔄 Clear and Upload Another"):
-        st.rerun()
+    # RESET BUTTON (Ab ye kaam karega)
+    if st.button("🔄 UPLOAD ANOTHER IMAGE"):
+        trigger_reset()
 
 else:
     st.info("Please upload an image to begin.")
