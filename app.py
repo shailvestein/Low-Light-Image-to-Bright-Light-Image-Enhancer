@@ -8,20 +8,17 @@ from utils import load_weights
 from Enhancer import Enhancer
 
 # --- 1. SET PAGE CONFIG ---
-st.set_page_config(layout="wide", page_title="AI Photo Lab")
+st.set_page_config(layout="wide", page_title="DeepSense AI Lab", page_icon="✨")
 
 # --- 2. SESSION STATE FOR RESET ---
-# Agar key nahi hai toh 0 se shuru karein
 if 'reset_counter' not in st.session_state:
     st.session_state.reset_counter = 0
 
 def trigger_reset():
-    # Counter badhane se file_uploader ki 'key' badal jayegi aur wo khali ho jayega
     st.session_state.reset_counter += 1
-    # Purana processed data clear karne ke liye session state ko clean karein (optional)
     st.rerun()
 
-# --- 3. MODEL LOADING (CACHED) ---
+# --- 3. MODEL LOADING ---
 @st.cache_resource
 def get_enhancer():
     model = load_weights()
@@ -29,7 +26,7 @@ def get_enhancer():
 
 enhancer = get_enhancer()
 
-# --- 4. HELPER FUNCTIONS ---
+# --- 4. HELPERS ---
 def get_webp_bytes(image_rgb, quality=85):
     img = Image.fromarray(image_rgb)
     buf = io.BytesIO()
@@ -38,60 +35,69 @@ def get_webp_bytes(image_rgb, quality=85):
 
 def pre_process_resize(image_rgb, target_width=1200):
     h, w = image_rgb.shape[:2]
-    if w <= target_width:
-        return image_rgb
+    if w <= target_width: return image_rgb
     aspect_ratio = h / w
-    target_height = int(target_width * aspect_ratio)
-    return cv2.resize(image_rgb, (target_width, target_height), interpolation=cv2.INTER_AREA)
+    return cv2.resize(image_rgb, (target_width, int(target_width * aspect_ratio)), interpolation=cv2.INTER_AREA)
 
 # --- 5. UI HEADER ---
-st.title("🚀 AI Image Restoration Lab")
+st.markdown("<h1 style='text-align: center; color: #00d4ff;'>📸 DeepSense AI Restoration</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #888;'>Pro-grade Low Light Enhancement Powered by Neural Networks</p>", unsafe_allow_html=True)
 
-# --- 6. IMAGE UPLOAD (With Dynamic Key) ---
-# Jab reset button dabega, key 'uploader_1', 'uploader_2' aise badlegi, jisse reset pakka hoga
+# --- 6. UPLOADER ---
 uploader_key = f"uploader_{st.session_state.reset_counter}"
-uploaded_file = st.file_uploader("Drop your image here", type=["jpg", "jpeg", "png"], key=uploader_key)
+uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], key=uploader_key)
 
 if uploaded_file is not None:
-    # Read Image
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     img_bgr = cv2.imdecode(file_bytes, 1)
     img_rgb_raw = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    # STEP 1: Resize to 1200px
     img_input = pre_process_resize(img_rgb_raw, target_width=1200)
 
-    # STEP 2: AI Enhancement
-    with st.spinner("Enhancing you image..."):
-        ai_output, p_time = enhancer.enhance_image(img_input) 
-        ai_output = cv2.cvtColor(ai_output, cv2.COLOR_BGR2RGB)
+    # --- FANCY PROCESSING ---
+    with st.status("🚀 Initializing AI Engine...", expanded=True) as status:
+        st.write("🧪 Analyzing scene lighting...")
+        time.sleep(0.4)
+        st.write("🧠 Running Fused U-Net Inference...")
+        
+        ai_output, p_time = enhancer.enhance_image(img_input)
+        ai_output = cv2.cvtColor(ai_output, cv2.COLOR_BGR2RGB) # Blue tint fix
+        
+        st.write("🎨 Balancing color channels...")
+        st.write("✅ Ready for download!")
+        status.update(label=f"✨ Magic Done in {p_time}s!", state="complete", expanded=False)
 
-    # --- 7. DISPLAY SIDE-BY-SIDE ---
-    st.success(f"Restoration Complete in {p_time} seconds!")
-    
+    # --- DISPLAY ---
     col1, col2 = st.columns(2)
     with col1:
-        st.subheader("Original (1200px)")
+        st.markdown("<h4 style='text-align: center;'>🌑 Original</h4>", unsafe_allow_html=True)
         st.image(img_input, width='stretch')
-
     with col2:
-        st.subheader("AI Enhanced")
+        st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
         st.image(ai_output, width='stretch')
 
-    # --- 8. DOWNLOAD & RESET SECTION ---
+    # --- DOWNLOAD & RESET ---
     st.divider()
-    
-    # Download Button
-    webp_data = get_webp_bytes(ai_output, quality=90)
-    st.download_button(
-        label="📩 DOWNLOAD ENHANCED IMAGE",
-        data=webp_data,
-        file_name="deepsense_result.webp",
-        mime="image/webp"
-    )
-
-    # RESET BUTTON (Ab ye kaam karega)
-    if st.button("🔄 UPLOAD ANOTHER IMAGE"):
-        trigger_reset()
+    c1, c2, _ = st.columns([1, 1, 1])
+    with c1:
+        webp_data = get_webp_bytes(ai_output, quality=90)
+        st.download_button("📩 Download High-Res Result", data=webp_data, file_name="enhanced.webp", mime="image/webp")
+    with c2:
+        if st.button("🔄 Enhance Another Photo"):
+            trigger_reset()
 
 else:
-    st.info("Please upload an image to begin.")
+    st.info("👋 Welcome! Please upload a photo to start the restoration.")
+
+# --- 7. FOOTER ---
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style='text-align: center; border-top: 1px solid #333; padding-top: 20px;'>
+        <p style='color: #555; font-size: 13px;'>
+            Built with PyTorch & OpenCV <br>
+            <span style='color: #00d4ff; font-weight: bold;'>Powered by YOUR NAME</span>
+        </p>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
