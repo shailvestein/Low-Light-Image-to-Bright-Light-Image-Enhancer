@@ -63,6 +63,7 @@ if uploaded_file is not None:
     # STEP 2: AI Enhancement
     with st.spinner("AI is working..."):
         ai_output, p_time = enhancer.enhance_image(img_input) 
+        ai_output = cv2.cvtColor(ai_output, cv2.COLOR_BGR2RGB)
 
     # --- 7. DISPLAY SIDE-BY-SIDE ---
     st.success(f"Restoration Complete in {p_time} seconds!")
