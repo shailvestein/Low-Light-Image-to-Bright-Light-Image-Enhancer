@@ -56,15 +56,13 @@ if uploaded_file is not None:
     # --- FANCY PROCESSING ---
     with st.status("🚀 Initializing AI Engine...", expanded=True) as status:
         st.write("🧪 Analyzing scene lighting...")
-        time.sleep(0.4)
-        st.write("🧠 Running Fused U-Net Inference...")
-        
+        time.sleep(0.4)        
         ai_output, p_time = enhancer.enhance_image(img_input)
         ai_output = cv2.cvtColor(ai_output, cv2.COLOR_BGR2RGB) # Blue tint fix
         
         st.write("🎨 Balancing color channels...")
         st.write("✅ Ready for download!")
-        status.update(label=f"✨ Magic Done in {p_time}s!", state="complete", expanded=False)
+        status.update(label=f"✨ Magic Done in {p_time:.0f}s!", state="complete", expanded=False)
 
     # --- DISPLAY ---
     col1, col2 = st.columns(2)
@@ -88,14 +86,23 @@ if uploaded_file is not None:
 else:
     st.info("👋 Welcome! Please upload a photo to start the restoration.")
 
-# --- 7. FOOTER ---
+# --- 7. FOOTER (With Clickable Email) ---
 st.markdown("<br><br><br>", unsafe_allow_html=True)
 st.markdown(
     """
     <div style='text-align: center; border-top: 1px solid #333; padding-top: 20px;'>
-        <p style='color: #555; font-size: 13px;'>
-            Built with PyTorch & OpenCV <br>
-            <span style='color: #00d4ff; font-weight: bold;'>Powered by YOUR NAME</span>
+        <p style='color: #888; font-size: 13px; margin-bottom: 5px;'>
+            Built with PyTorch & OpenCV
+        </p>
+        <p style='font-size: 14px;'>
+            <span style='color: #555;'>Have a suggestion? </span>
+            <a href="mailto:shailvestein.careers@gmail.com?subject=Suggestion for DeepSense AI Lab" 
+               style="color: #00d4ff; text-decoration: none; font-weight: bold;">
+               📩 Contact Developer
+            </a>
+        </p>
+        <p style='color: #00d4ff; font-weight: bold; font-size: 15px; margin-top: 10px;'>
+            Powered by Shailesh Vishwakarma
         </p>
     </div>
     """, 
