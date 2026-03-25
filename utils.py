@@ -331,5 +331,5 @@ def load_weights():
     download_weights(fused_model_id, fused_model_name)
     fusednet = FusedTrainer(FusionNet(unet, dcenet), fused_model_name)
 
-    return fusednet
+    return fusednet.model
 
