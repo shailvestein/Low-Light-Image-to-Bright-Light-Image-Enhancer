@@ -4,6 +4,9 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
+import torchvision.transforms as T
+import torchvision.transforms.functional as TF
+from torchvision.models import vgg16, VGG16_Weights
 
 import random
 import kornia
@@ -17,21 +20,12 @@ from piq import ssim, psnr
 import lpips
 
 import cv2
+import gdown
 
-import torchvision.transforms as T
-import torchvision.transforms.functional as TF
-from torchvision.models import vgg16, VGG16_Weights
 
 batch_size=8
 patch_size=256
 random_samples = 16
-
-
-save_model_path = "/kaggle/working"
-unet_model_name = "best-unet-model.pth"
-dcenet_model_name = "best-dcenet-model.pth"
-fused_model_name = "best-fused-model.pth"
-
 
 device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 print(f"Device: {device}")
@@ -53,8 +47,12 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
+----------------------------------------------------------------------------------
+                    R E T I N E X    N E T    M O D E L
+----------------------------------------------------------------------------------
 
-# The Retinex U-Net (Architecture)
+
+
 class RetinexUNet(nn.Module):
     def __init__(self, in_channels=3, out_channels=3):
         super(RetinexUNet, self).__init__()
@@ -110,170 +108,15 @@ class RetinexUNet(nn.Module):
         # This keeps the original edges SHARP
         enhanced = x_low / illumination
         enhanced = torch.clamp(enhanced, 0, 1)
-
         return enhanced, illumination
 
-class RetinexLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.l1 = nn.L1Loss()
-        self.mse = nn.MSELoss()
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        # VGG for Texture Realism
-        vgg = vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:16].to(self.device).eval()
-        for param in vgg.parameters():
-            param.requires_grad = False
-        self.vgg = vgg
-
-    def forward(self, enhanced, illumination, low_input, high_gt):
-        # 1. Reconstruction & Structure (Natural Feel)
-        loss_recon = 0.8 * self.l1(enhanced, high_gt) + 0.2 * self.mse(enhanced, high_gt)
-        loss_ssim = 1 - self.ssim_loss(enhanced, high_gt)
-
-        # 2. DSLR Focus Loss (Edge Sharpness)
-        loss_focus = self.laplacian_focus_loss(enhanced, high_gt)
-
-        # 3. Content-Adaptive Exposure (Day/Night Balance)
-        with torch.no_grad():
-            low_mean = torch.mean(low_input, dim=(1,2,3))
-            target_exp = torch.where(low_mean < 0.3, torch.tensor(0.6).to(self.device), low_mean + 0.05)
-        avg_intensity = F.avg_pool2d(enhanced, 16).mean(dim=(1,2,3))
-        loss_exp = torch.mean((avg_intensity - target_exp)**2)
-
-        # 4. Illumination & Denoise (Anti-Patch & Anti-Noise)
-        loss_tv_illum = self.tv_loss(illumination)
-        # To remove noise from Final image (Edge-aware denoising)
-        loss_denoise = self.edge_aware_tv_loss(enhanced)
-
-        # 5. Color & Texture Realism
-        loss_color = 1 - F.cosine_similarity(torch.mean(enhanced, dim=(2,3)),
-                                             torch.mean(high_gt, dim=(2,3)), dim=1).mean()
-        loss_vgg = self.l1(self.vgg(enhanced), self.vgg(high_gt))
-
-        # --- FINAL BALANCED WEIGHTS ---
-        # SSIM(25) + Focus(15) -> DSLR Clarity
-        # Exp(10) -> Day/Night balance
-        # TV_Illum(20) -> Patches hatane ke liye
-        total_loss = (1.0 * loss_recon) + (25.0 * loss_ssim) + \
-                     (15.0 * loss_focus) + (10.0 * loss_exp) + \
-                     (20.0 * loss_tv_illum) + (10.0 * loss_denoise) + \
-                     (5.0 * loss_color) + (0.5 * loss_vgg)
-
-        return total_loss
-
-    def laplacian_focus_loss(self, pred, gt):
-        lap = torch.tensor([[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=torch.float32).view(1,1,3,3).to(self.device)
-        def get_lap(img):
-            return torch.cat([F.conv2d(img[:, i:i+1, :, :], lap, padding=1) for i in range(3)], dim=1)
-        return self.l1(get_lap(pred), get_lap(gt))
-
-    def edge_aware_tv_loss(self, img):
-        h_x = img[:, :, 1:, :] - img[:, :, :-1, :]
-        w_x = img[:, :, :, 1:] - img[:, :, :, :-1]
-        return torch.mean(torch.exp(-15 * torch.abs(h_x)) * torch.abs(h_x)) + \
-               torch.mean(torch.exp(-15 * torch.abs(w_x)) * torch.abs(w_x))
-
-    def ssim_loss(self, img1, img2, window_size=11):
-        mu1 = F.avg_pool2d(img1, window_size, stride=1, padding=window_size//2)
-        mu2 = F.avg_pool2d(img2, window_size, stride=1, padding=window_size//2)
-        s1q = F.avg_pool2d(img1*img1, window_size, stride=1, padding=window_size//2) - mu1**2
-        s2q = F.avg_pool2d(img2*img2, window_size, stride=1, padding=window_size//2) - mu2**2
-        s12 = F.avg_pool2d(img1*img2, window_size, stride=1, padding=window_size//2) - mu1*mu2
-        c1, c2 = 0.01**2, 0.03**2
-        return (((2*mu1*mu2 + c1)*(2*s12 + c2)) / ((mu1**2 + mu2**2 + c1)*(s1q + s2q + c2))).mean()
-
-    def tv_loss(self, obj):
-        batch_size, channels, h, w = obj.size()
-        h_tv = torch.pow((obj[:,:,1:,:] - obj[:,:,:-1,:]), 2).sum()
-        w_tv = torch.pow((obj[:,:,:,1:] - obj[:,:,:,:-1]), 2).sum()
-        return (h_tv/((h-1)*w) + w_tv/(h*(w-1))) / (batch_size * channels)
 
 class UNetTrainer:
-    def __init__(self, model, criterion, optimizer, scheduler):
+    def __init__(self, model, weights_name):
         self.model = model
-        self.criterion = criterion
-        self.optimizer = optimizer
-        self.scheduler = scheduler
         self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
-        self.criterion.to(self.device)
-        self.best_loss = float('inf')
-        self.best_model_path = None
-
-    def show_live_stats(self, running_loss, n_batches, idx, start_time, epoch, total_epochs):
-        # Stats calculation
-        # Formatting the progress bar
-        current_step = idx + 1
-        avg_loss = running_loss / current_step
-
-        # create [====>.....] string
-        bar_width = 30
-        progress = int(current_step / n_batches * bar_width)
-        bar = '='* progress + '=>' + "." * (bar_width - progress - 1)
-
-        # Timing
-        elapsed = time.time() - start_time
-        step_time = (elapsed / current_step) * 1000 # 1000 ms per batch
-
-        # The Magic line
-        output = (f"\rEpoch: {epoch}/{total_epochs} - "
-                  f"{current_step}/{n_batches} [{bar}]"
-                  f"- {step_time:.0f}ms/step - train_loss: {avg_loss:.4f}")
-
-        sys.stdout.write(output)
-        sys.stdout.flush()
-
-    def _train_epoch(self, loader, epoch, total_epochs):
-        self.model.train()
-        train_loss = 0.0
-        n_batches = len(loader)
-        start_time = time.time()
-
-        for i, (x, y) in enumerate(loader):
-            self.optimizer.zero_grad()
-            x = x.to(self.device)
-            pred, illum = self.model(x)
-            loss = self.criterion(pred, illum, x, y.to(self.device))
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.1)
-            self.optimizer.step()
-            train_loss += loss.item()
-            self.show_live_stats(train_loss, n_batches, i, start_time, epoch, total_epochs)
-        return train_loss / n_batches
-
-    def _validate(self, loader):
-        self.model.eval()
-        val_loss = 0.0
-
-        with torch.no_grad():
-            for x,y in loader:
-                x = x.to(self.device)
-                pred, illum = self.model(x)
-                loss = self.criterion(pred, illum, x, y.to(self.device))
-                val_loss += loss.item()
-
-        val_loss = val_loss / len(loader)
-        sys.stdout.write(f" - val_loss: {val_loss:.4f}")
-        sys.stdout.flush()
-        return val_loss
-
-
-
-    def fit(self, train_loader, val_loader, epochs, save_model_path, model_name):
-        self.best_model_path = os.path.join(save_model_path, model_name)
-        for epoch in range(1, epochs+1):
-            train_loss = self._train_epoch(train_loader, epoch, epochs)
-            val_loss = self._validate(val_loader)
-            diff = abs(train_loss - val_loss)
-            if (diff < 5) and (val_loss < self.best_loss):
-                old_best = self.best_loss
-                self.best_loss = val_loss
-                torch.save(self.model.state_dict(), self.best_model_path)
-                sys.stdout.write(f" - val_loss improved from {old_best:.4f} to {val_loss:.4f} (diff: {diff:.4f}) and model saved!")
-                sys.stdout.flush()
-            if self.scheduler:
-                self.scheduler.step()
-            print()
+        self.best_model_path = weights_name
 
 
     def predict(self, x):
@@ -286,52 +129,11 @@ class UNetTrainer:
             raise ValueError("No best model found. Please train the model first.")
         self.model.load_state_dict(torch.load(self.best_model_path))
 
-    def load_best_model_for_inference(self, path=None):
-        if path:
-            self.best_model_path = path
-            self.model.load_state_dict(torch.load(self.best_model_path))
-            print(f"Best model from {self.best_model_path} loaded succeessfully!")
 
+----------------------------------------------------------------------------------
+                    Z E R O D C E    N E T    M O D E L
+----------------------------------------------------------------------------------
 
-
-class ScoreCalculator:
-    def __init__(self):
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        # Initialize LPIPS (AlexNet backbone is standard for speed/accuracy)
-        self.lpips_vgg = lpips.LPIPS(net='vgg').to(self.device)
-
-    def calculate_metrics(self, pred, target):
-        """
-        pred: Tensor [B, 3, H, W], range [0, 1]
-        target: Tensor [B, 3, H, W], range [0, 1]
-        """
-        results = {}
-
-        # 1. PSNR (Peak Signal-to-Noise Ratio)
-        # Higher is better. Usually 20-40dB for reconstruction tasks.
-        results['psnr'] = psnr(pred, target, data_range=1.0).item()
-
-        # 2. SSIM (Structural Similarity Index)
-        # Range [0, 1]. Higher is better (1.0 is perfect).
-        results['ssim'] = ssim(pred, target, data_range=1.0).item()
-
-        # 3. LPIPS (Learned Perceptual Image Patch Similarity)
-        # Lower is better. Measures "perceptual" distance using deep features.
-        # Note: LPIPS expects input in range [-1, 1]
-        lpips_score = self.lpips_vgg(pred * 2 - 1, target * 2 - 1)
-        results['lpips'] = lpips_score.mean().item()
-
-        return results
-
-evaluator = ScoreCalculator()
-
-def print_evaluation_metrics(evaluator, pred, target):
-    scores = evaluator.calculate_metrics(pred, target)
-
-    return scores['psnr'], scores['ssim'], scores['lpips']
-
-
-"""# ZERO DCE MODEL"""
 
 class ZeroDCENet(nn.Module):
     def __init__(self, n_iter=8):
@@ -370,144 +172,15 @@ class ZeroDCENet(nn.Module):
         for i in range(self.n_iter):
             a = alpha_map[:, i*3 : (i+1)*3, :, :]
             y = y + a * y * (1 - y)
-
         return y, alpha_map
 
-class ZeroDCENetLoss(nn.Module):
-    def __init__(self, exposure_level=0.6, weights={'recon': 1.0, 'exp': 10.0, 'col': 2.0, 'tv': 200.0, 'spa': 1.0}):
-        super(ZeroDCENetLoss, self).__init__()
-        self.l1 = nn.L1Loss()
-        self.exp_level = exposure_level
-        self.w = weights
-
-
-    def forward(self, enhanced, alpha_map, low, ground_truth):
-
-        # Spatial Consistency (Zero-DCE style)
-        loss_spa = self.spatial_loss(enhanced, low)
-
-        # Exposure Control
-        loss_exp = self.exposure_loss(enhanced)
-
-        # Color Constancy (Natural Hue Preservation)
-        loss_col = self.color_loss(enhanced, ground_truth)
-
-        # Illumination Smoothness (Total Variation on Alpha)
-        loss_tv = self.tv_loss(alpha_map)
-
-        total_loss = loss_spa + (self.w['exp'] * loss_exp) + (self.w['col'] * loss_col) + (self.w['tv'] * loss_tv)
-        return total_loss
-
-    def spatial_loss(self, enhanced, low):
-        kernel = torch.tensor([[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=torch.float32).expand(3, 1, 3, 3).to(enhanced.device)
-        return torch.mean((F.conv2d(enhanced, kernel, groups=3) - F.conv2d(low, kernel, groups=3))**2)
-
-    def exposure_loss(self, x):
-        avg_intensity = F.avg_pool2d(x, 16)
-        return torch.mean((avg_intensity - self.exp_level)**2)
-
-    def color_loss(self, x, y):
-        # Using Cosine Similarity to maintain RGB ratios
-        x_mean = torch.mean(x, dim=(2, 3))
-        y_mean = torch.mean(y, dim=(2, 3))
-        return 1 - F.cosine_similarity(x_mean, y_mean, dim=1).mean()
-
-    def tv_loss(self, alpha):
-        batch_size, _, h, w = alpha.size()
-        count_h = (h - 1) * w
-        count_w = h * (w - 1)
-        h_tv = torch.pow((alpha[:, :, 1:, :] - alpha[:, :, :h-1, :]), 2).sum()
-        w_tv = torch.pow((alpha[:, :, :, 1:] - alpha[:, :, :, :w-1]), 2).sum()
-        return 2 * (h_tv / count_h + w_tv / count_w) / batch_size
 
 class DCETrainer:
-    def __init__(self, model, criterion, optimizer, scheduler):
+    def __init__(self, model, weights_name):
         self.model = model
-        self.criterion = criterion
-        self.optimizer = optimizer
-        self.scheduler = scheduler
         self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(self.device)
-        self.criterion.to(self.device)
-        self.best_loss = float('inf')
-        self.best_model_path = None
-
-    def show_live_stats(self, running_loss, n_batches, idx, start_time, epoch, total_epochs):
-        # Stats calculation
-        # Formatting the progress bar
-        current_step = idx + 1
-        avg_loss = running_loss / current_step
-
-        # create [====>.....] string
-        bar_width = 30
-        progress = int(current_step / n_batches * bar_width)
-        bar = '='* progress + '=>' + "." * (bar_width - progress - 1)
-
-        # Timing
-        elapsed = time.time() - start_time
-        step_time = (elapsed / current_step) * 1000 # 1000 ms per batch
-
-        # The Magic line
-        output = (f"\rEpoch: {epoch}/{total_epochs} - "
-                  f"{current_step}/{n_batches} [{bar}]"
-                  f"- {step_time:.0f}ms/step - train_loss: {avg_loss:.4f}")
-
-        sys.stdout.write(output)
-        sys.stdout.flush()
-
-    def _train_epoch(self, loader, epoch, total_epochs):
-        self.model.train()
-        train_loss = 0.0
-        n_batches = len(loader)
-        start_time = time.time()
-
-        for i, (x, y) in enumerate(loader):
-            x = x.to(self.device)
-            self.optimizer.zero_grad()
-            output, alpha_map = self.model(x)
-            loss = self.criterion(output, alpha_map, x, y.to(device))
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.1)
-            self.optimizer.step()
-            train_loss += loss.item()
-            self.show_live_stats(train_loss, n_batches, i, start_time, epoch, total_epochs)
-        return train_loss/n_batches
-
-    def _validate(self, loader):
-        self.model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for x,y in loader:
-                x = x.to(self.device)
-                pred, alpha_map = self.model(x)
-                loss = self.criterion(pred, alpha_map, x, y.to(device))
-                val_loss += loss.item()
-
-        val_loss = val_loss / len(loader)
-        sys.stdout.write(f" - val_loss: {val_loss:.4f}")
-        sys.stdout.flush()
-        return val_loss
-
-
-
-    def fit(self, train_loader, val_loader, epochs, save_model_path, model_name):
-        if self.best_model_path is None:
-            self.best_model_path = os.path.join(save_model_path, model_name)
-        for epoch in range(1, epochs+1):
-            train_loss = self._train_epoch(train_loader, epoch, epochs)
-            val_loss = self._validate(val_loader)
-            diff = abs(train_loss - val_loss)
-            if (diff < 5) and (val_loss < self.best_loss):
-                old_best = self.best_loss
-                self.best_loss = val_loss
-                torch.save(self.model.state_dict(), self.best_model_path)
-                sys.stdout.write(f" - val_loss improved from {old_best:.4f} to {val_loss:.4f} (diff: {diff:.4f}) and model saved!")
-                sys.stdout.flush()
-            if self.scheduler:
-                self.scheduler.step()
-            print()
-
-
+        self.best_model_path = weights_name
 
     def predict(self, x):
         with torch.no_grad():
@@ -519,27 +192,11 @@ class DCETrainer:
             raise ValueError("No best model found. Please train the model first.")
         self.model.load_state_dict(torch.load(self.best_model_path))
 
-    def load_best_model_for_inference(self, path=None):
-        if path:
-            self.best_model_path = path
-            self.model.load_state_dict(torch.load(self.best_model_path))
-            print(f"Best model from {self.best_model_path} loaded succeessfully!")
-
-dce_num_epochs = 5
-
-dce_model = ZeroDCENet(n_iter=8)
-criterion = ZeroDCENetLoss(exposure_level=0.6)
-optimizer = optim.AdamW(dce_model.parameters(), lr=1e-4, betas=(0.9, 0.999), weight_decay=0.01)
-scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=dce_num_epochs, eta_min=1e-6)
-dce_trainer = DCETrainer(dce_model, criterion, optimizer, scheduler)
-
-dce_trainer.load_best_model_for_inference("/kaggle/input/models/shaileshkumarvishwak/llie-fused-models/pytorch/default/1/best-dcenet-model.pth")
-
-# dce_trainer.fit(train_loader, epochs=dce_num_epochs, val_loader=val_loader, save_model_path=save_model_path, model_name=dcenet_model_name)
 
 
-
-"""# FUSED MODEL"""
+----------------------------------------------------------------------------------
+                    F U S I O N    N E T    M O D E L
+----------------------------------------------------------------------------------
 
 class DenoiseBlock(nn.Module):
     def __init__(self, channels):
@@ -566,8 +223,6 @@ class ColorCorrection(nn.Module):
     def forward(self, x):
         # To subtle scale image colors
         return x * self.pointwise(x)
-
-
 
 class FusionNet(nn.Module):
     def __init__(self, retinex_model, zerodce_model):
@@ -627,171 +282,14 @@ class FusionNet(nn.Module):
 
         return torch.clamp(final_output, 0, 1), alpha_map
 
-class FusionLoss(nn.Module):
-    def __init__(self, exp_level=0.62):
-        super(FusionLoss, self).__init__()
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.l1 = nn.L1Loss()
-        self.mse = nn.MSELoss()
-        self.exp_level = exp_level
-
-        vgg = vgg16(weights=VGG16_Weights.IMAGENET1K_V1).features[:16].to(self.device).eval()
-        for param in vgg.parameters():
-            param.requires_grad = False
-        self.vgg = vgg
-
-    def forward(self, pred, alpha, low, gt):
-        # Pixel & Structure (Details)
-        loss_pixel = 0.8 * self.l1(pred, gt) + 0.2 * self.mse(pred, gt)
-
-        # SSIM call (Ab attribute error nahi aayega)
-        loss_ssim = 1 - self.ssim_loss(pred, gt)
-
-        # Focus (DSLR Sharpness)
-        loss_focus = self.laplacian_focus_loss(pred, gt)
-
-        # Dynamic Exposure (Adaptive Day/Night)
-        with torch.no_grad():
-            low_mean = torch.mean(low, dim=(1,2,3))
-            target_exp = torch.where(low_mean < 0.3, torch.tensor(0.6).to(self.device), low_mean + 0.05)
-        avg_intensity = F.avg_pool2d(pred, 16).mean(dim=(1,2,3))
-        loss_exp = torch.mean((avg_intensity - target_exp)**2)
-
-        # Color & Noise
-        loss_col = self.color_constancy_loss(pred, gt)
-        loss_denoise = self.edge_aware_tv_loss(pred)
-        loss_vgg = self.l1(self.vgg(pred), self.vgg(gt))
-
-        # Final Weighted Loss
-        total_loss = (1.0 * loss_pixel) + (25.0 * loss_ssim) + \
-                     (20.0 * loss_focus) + (10.0 * loss_exp) + \
-                     (8.0 * loss_col) + (15.0 * loss_denoise) + \
-                     (1.0 * loss_vgg)
-
-        return total_loss
-
-
-    def ssim_loss(self, img1, img2, window_size=11):
-        mu1 = F.avg_pool2d(img1, window_size, stride=1, padding=window_size//2)
-        mu2 = F.avg_pool2d(img2, window_size, stride=1, padding=window_size//2)
-        s1q = F.avg_pool2d(img1*img1, window_size, stride=1, padding=window_size//2) - mu1**2
-        s2q = F.avg_pool2d(img2*img2, window_size, stride=1, padding=window_size//2) - mu2**2
-        s12 = F.avg_pool2d(img1*img2, window_size, stride=1, padding=window_size//2) - mu1*mu2
-        c1, c2 = 0.01**2, 0.03**2
-        ssim_map = ((2*mu1*mu2 + c1)*(2*s12 + c2)) / ((mu1**2 + mu2**2 + c1)*(s1q + s2q + c2))
-        return ssim_map.mean()
-
-    def laplacian_focus_loss(self, pred, gt):
-        lap = torch.tensor([[0, 1, 0], [1, -4, 1], [0, 1, 0]], dtype=torch.float32).view(1,1,3,3).to(self.device)
-        def get_lap(img):
-            return torch.cat([F.conv2d(img[:, i:i+1, :, :], lap, padding=1) for i in range(3)], dim=1)
-        return self.l1(get_lap(pred), get_lap(gt))
-
-    def edge_aware_tv_loss(self, img):
-        h_x = img[:, :, 1:, :] - img[:, :, :-1, :]
-        w_x = img[:, :, :, 1:] - img[:, :, :, :-1]
-        return torch.mean(torch.exp(-15 * torch.abs(h_x)) * torch.abs(h_x)) + \
-               torch.mean(torch.exp(-15 * torch.abs(w_x)) * torch.abs(w_x))
-
-    def color_constancy_loss(self, x, y):
-        return 1 - F.cosine_similarity(x.mean(dim=(2,3)), y.mean(dim=(2,3)), dim=1).mean()
 
 class FusedTrainer:
-    def __init__(self, model, criterion, optimizer, scheduler):
-        self.optimizer = optimizer
-        self.scheduler = scheduler
+    def __init__(self, model, weights_name):
         self.device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model = model.to(self.device)
-        self.criterion = criterion.to(self.device)
-        self.best_loss = float('inf')
-        self.best_model_path = None
+        self.best_model_path = weights_name
         self.denoiser = DenoiseBlock(3).to(self.device)
         self.color_corrector = ColorCorrection().to(self.device)
-
-
-    def show_live_stats(self, running_loss, n_batches, idx, start_time, epoch, total_epochs):
-        # Stats calculation
-        # Formatting the progress bar
-        current_step = idx + 1
-        avg_loss = running_loss / current_step
-
-        # create [====>.....] string
-        bar_width = 30
-        progress = int(current_step / n_batches * bar_width)
-        bar = '='* progress + '=>' + "." * (bar_width - progress - 1)
-
-        # Timing
-        elapsed = time.time() - start_time
-        step_time = (elapsed / current_step) * 1000 # 1000 ms per batch
-
-        # The Magic line
-        output = (f"\rEpoch: {epoch}/{total_epochs} - "
-                  f"{current_step}/{n_batches} [{bar}]"
-                  f"- {step_time:.0f}ms/step - train_loss: {avg_loss:.4f}")
-
-        sys.stdout.write(output)
-        sys.stdout.flush()
-
-    def _train_epoch(self, loader, epoch, total_epochs):
-        self.model.train()
-        train_loss = 0.0
-        n_batches = len(loader)
-        start_time = time.time()
-
-        for i, (x, y) in enumerate(loader):
-            self.model.train()
-            self.model.retinex_net.eval()
-            self.model.zerodce_net.eval()
-            x = x.to(self.device)
-            self.optimizer.zero_grad()
-            pred, alpha = self.model(x)
-            pred = self.denoiser(pred)
-            pred = self.color_corrector(pred)
-            loss = self.criterion(pred, alpha, x, y.to(self.device))
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.1)
-            self.optimizer.step()
-            train_loss += loss.item()
-            self.show_live_stats(train_loss, n_batches, i, start_time, epoch, total_epochs)
-        return train_loss/n_batches
-
-    def _validate(self, loader):
-        self.model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for x,y in loader:
-                x = x.to(self.device)
-                pred, alpha = self.model(x)
-                pred = self.denoiser(pred)
-                pred = self.color_corrector(pred)
-                loss = self.criterion(pred, alpha, x, y.to(self.device))
-                val_loss += loss.item()
-
-        val_loss = val_loss / len(loader)
-        sys.stdout.write(f" - val_loss: {val_loss:.4f}")
-        sys.stdout.flush()
-        return val_loss
-
-
-
-    def fit(self, train_loader, val_loader, epochs, save_model_path, model_name):
-        if self.best_model_path is None:
-            self.best_model_path = os.path.join(save_model_path, model_name)
-        for epoch in range(1, epochs+1):
-            train_loss = self._train_epoch(train_loader, epoch, epochs)
-            val_loss = self._validate(val_loader)
-            diff = abs(train_loss - val_loss)
-            if (diff < 5) and (val_loss < self.best_loss):
-                old_best = self.best_loss
-                self.best_loss = val_loss
-                torch.save(self.model.state_dict(), self.best_model_path)
-                sys.stdout.write(f" - val_loss improved from {old_best:.4f} to {val_loss:.4f} (diff: {diff:.4f}) and model saved!")
-                sys.stdout.flush()
-            if self.scheduler:
-                self.scheduler.step()
-            print()
-
-
 
     def predict(self, x):
         with torch.no_grad():
@@ -803,8 +301,22 @@ class FusedTrainer:
             raise ValueError("No best model found. Please train the model first.")
         self.model.load_state_dict(torch.load(self.best_model_path))
 
-    def load_best_model_for_inference(self, path=None):
-        if path:
-            self.best_model_path = path
-            self.model.load_state_dict(torch.load(self.best_model_path))
-            print(f"Best model from {self.best_model_path} loaded succeessfully!")
+dcenet_model_id = "1P4lhymUpgj2Zc466kz-9815MajpbOgZL"
+fused_model_id = "1LEGeO9NuFckR3I8JMidICaVZY8ByTHEj"
+retinext_unet_model_id = "1WQUO4XYAjHNEjNlnPhXlKhS7wHlkumK2"
+
+retinex_unet_model_name = "best-unet-model.pth"
+dcenet_model_name = "best-dcenet-model.pth"
+fused_model_name = "best-fused-model.pth"
+
+def download_weights(file_id, model_name):
+    url = f'https://drive.google.com/uc?id={file_id}'
+    if not os.path.exists(model_name):
+        with st.spinner(f"Downloading model {model_name} weights from Google Drive...", end=''):
+            gdown.download(url, model_name, quiet=False)
+    print(f"done!")
+    return model_name
+
+@st.cache_resource
+def load_weights():
+    unet = Retin
