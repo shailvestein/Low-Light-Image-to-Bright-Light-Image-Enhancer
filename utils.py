@@ -647,9 +647,9 @@ class ColorCorrection(nn.Module):
 
 
 
-class FusionModel(nn.Module):
+class FusionNet(nn.Module):
     def __init__(self, retinex_model, zerodce_model):
-        super(FusionModel, self).__init__()
+        super(FusionNet, self).__init__()
 
         self.retinex_net = retinex_model
         self.zerodce_net = zerodce_model
@@ -889,7 +889,7 @@ class FusedTrainer:
 
 fused_num_epochs = 5
 
-fused_model = FusionModel(unet_model, dce_model)
+fused_model = FusionNet(unet_model, dce_model)
 criterion = FusionLoss()
 optimizer = optim.AdamW(fused_model.parameters(), lr=1e-4, betas=(0.9, 0.999), weight_decay=0.01)
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=fused_num_epochs, eta_min=1e-7)
