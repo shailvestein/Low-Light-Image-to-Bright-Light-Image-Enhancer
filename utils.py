@@ -326,7 +326,7 @@ def load_weights():
     unet = UNetTrainer(RetinexUNet(), unet_model_name)
 
     download_weights(dcenet_model_id, dcenet_model_name)
-    dcenet = DCENetTrainer(ZeroDCENet(n_iter=8), dcenet_mode_name)
+    dcenet = DCETrainer(ZeroDCENet(n_iter=8), dcenet_mode_name)
 
     download_weights(fused_model_id, fused_model_name)
     fusednet = FusedTrainer(FusionNet(unet, dcenet), fused_model_name)
