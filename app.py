@@ -40,7 +40,7 @@ def reset_app():
 def run_ai_inference(img_np):
     start = time.time()
     # Replace this with your actual model: enhanced = model(img_np)
-    enhanced = cv2.detailEnhance(img_np, sigma_s=10, sigma_r=0.15)
+    enhanced =  enhancer.enhance_image(img_np)
     return enhanced, round((time.time() - start), 3)
 
 # --- UI LOGIC ---
