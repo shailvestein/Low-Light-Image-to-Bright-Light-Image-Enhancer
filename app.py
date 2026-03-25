@@ -22,7 +22,7 @@ def trigger_reset():
 @st.cache_resource
 def get_enhancer():
     model = load_weights()
-    return Enhancer(model, batch_size=1)
+    return Enhancer(model, batch_size=4)
 
 enhancer = get_enhancer()
 
