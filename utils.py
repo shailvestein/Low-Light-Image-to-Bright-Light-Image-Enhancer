@@ -301,11 +301,16 @@ class FusedTrainer:
             raise ValueError("No best model found. Please train the model first.")
         self.model.load_state_dict(torch.load(self.best_model_path))
 
+
+----------------------------------------------------------------------------------
+            D O W N L O A D    P R E - T R A I N E D   W E I G H T S
+----------------------------------------------------------------------------------
+
 dcenet_model_id = "1P4lhymUpgj2Zc466kz-9815MajpbOgZL"
 fused_model_id = "1LEGeO9NuFckR3I8JMidICaVZY8ByTHEj"
-retinext_unet_model_id = "1WQUO4XYAjHNEjNlnPhXlKhS7wHlkumK2"
+unet_model_id = "1WQUO4XYAjHNEjNlnPhXlKhS7wHlkumK2"
 
-retinex_unet_model_name = "best-unet-model.pth"
+unet_model_name = "best-unet-model.pth"
 dcenet_model_name = "best-dcenet-model.pth"
 fused_model_name = "best-fused-model.pth"
 
@@ -317,6 +322,15 @@ def download_weights(file_id, model_name):
     print(f"done!")
     return model_name
 
-@st.cache_resource
 def load_weights():
-    unet = Retin
+    download_weights(unet_model_id, unet_model_name)
+    unet = UNetTrainer(RetinexNet(), unet_model_name)
+
+    download_weights(dcenet_model_id, dcenet_model_name)
+    dcenet = DCENetTrainer(ZeroDCENet(n_iter=8), dcenet_mode_name)
+
+    download_weights(fused_model_id, fused_model_name)
+    fusednet = FusedTrainer(FusionNet(unet, dcenet), fused_model_name)
+
+    return fusednet
+
