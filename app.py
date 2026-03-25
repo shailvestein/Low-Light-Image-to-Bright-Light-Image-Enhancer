@@ -1,67 +1,96 @@
 import streamlit as st
 import cv2
 import numpy as np
+import time
+import io
 from PIL import Image
 from utils import load_weights
 from Enhancer import Enhancer
 
-# --- 1. Model Loading ---
+# --- 1. SET PAGE CONFIG ---
+st.set_page_config(layout="wide", page_title="AI Photo Lab")
+
+# --- 2. MODEL LOADING (CACHED) ---
 @st.cache_resource
 def get_enhancer():
     # Weights load karke enhancer return karega
     model = load_weights()
+    # batch_size=1 low-memory devices ke liye safest hai
     return Enhancer(model, batch_size=1)
 
 enhancer = get_enhancer()
 
-# --- 2. Simple UI Setup ---
-st.set_page_config(layout="wide", page_title="AI Photo Enhancer")
-st.title("🌓 Simple AI Photo Enhancer")
-st.write("Upload a dark photo to see the AI magic.")
+# --- 3. HELPER FUNCTIONS ---
+def get_webp_bytes(image_rgb, quality=85):
+    img = Image.fromarray(image_rgb)
+    buf = io.BytesIO()
+    img.save(buf, format='WEBP', quality=quality, method=6)
+    return buf.getvalue()
 
-# --- 3. Image Upload ---
-uploaded_file = st.file_uploader("Choose a photo...", type=["jpg", "jpeg", "png"])
+def pre_process_resize(image_rgb, target_width=1200):
+    h, w = image_rgb.shape[:2]
+    if w <= target_width:
+        return image_rgb
+    aspect_ratio = h / w
+    target_height = int(target_width * aspect_ratio)
+    # INTER_AREA is best for shrinking to 1200px
+    return cv2.resize(image_rgb, (target_width, target_height), interpolation=cv2.INTER_AREA)
+
+# --- 4. UI HEADER ---
+st.title("🚀 AI Image Restoration Lab")
+st.write("Upload a dark or low-light image to enhance it using Neural Networks.")
+
+# --- 5. IMAGE UPLOAD ---
+uploaded_file = st.file_uploader("Drop your image here", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    # --- 4. Read & Resize Logic ---
-    # Convert uploaded file to OpenCV format
+    # Read Image
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-    img = cv2.imdecode(file_bytes, 1)
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_bgr = cv2.imdecode(file_bytes, 1)
+    img_rgb_raw = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
-    # Simple Resize (2K limit) to maintain quality and speed
-    h, w = img_rgb.shape[:2]
-    target_w = 1000
-    if w > target_w:
-        aspect_ratio = h / w
-        img_rgb = cv2.resize(img_rgb, (target_w, int(target_w * aspect_ratio)), interpolation=cv2.INTER_AREA)
+    # STEP 1: Resize to 1200px BEFORE AI (As requested)
+    img_input = pre_process_resize(img_rgb_raw, target_width=1200)
 
-    # --- 5. AI Enhancement ---
-    with st.spinner("Processing... Please wait."):
-        # Enhancer class ka use karke output nikalna
-        enhanced_img = enhancer.enhance_image(img_rgb)
+    # STEP 2: AI Enhancement
+    with st.spinner("AI is working on your image..."):
+        start_t = time.time()
+        # Dhyan dein: Agar enhancer.enhance_image sirf image return karta hai:
+        ai_output = enhancer.enhance_image(img_input) 
+        p_time = round(time.time() - start_t, 3)
 
-    # --- 6. Side by Side Display ---
-    st.divider()
+    # --- 6. DISPLAY SIDE-BY-SIDE ---
+    st.success(f"Restoration Complete in {p_time} seconds!")
+    
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Original Image")
-        st.image(img_rgb, use_container_width=True)
+        st.subheader("Original (1200px)")
+        # 'width=stretch' makes it responsive and removes warnings
+        st.image(img_input, width='stretch')
 
     with col2:
-        st.subheader("AI Enhanced Image")
-        st.image(enhanced_img, use_container_width=True)
+        st.subheader("AI Enhanced")
+        st.image(ai_output, width='stretch')
 
-    # --- 7. Simple Download ---
+    # --- 7. DOWNLOAD SECTION ---
     st.divider()
-    # Convert back to BGR for saving
-    result_bgr = cv2.cvtColor(enhanced_img, cv2.COLOR_RGB2BGR)
-    _, buffer = cv2.imencode('.jpg', result_bgr, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
-    
-    st.download_button(
-        label="Download Enhanced Photo",
-        data=buffer.tobytes(),
-        file_name="enhanced_result.jpg",
-        mime="image/jpeg"
-    )
+    try:
+        # Optimized WebP Download
+        webp_data = get_webp_bytes(ai_output, quality=90)
+        
+        st.download_button(
+            label="📩 DOWNLOAD ENHANCED IMAGE (WebP)",
+            data=webp_data,
+            file_name="deepsense_result.webp",
+            mime="image/webp"
+        )
+    except Exception as e:
+        st.error(f"Download error: {e}")
+
+    # Reset
+    if st.button("🔄 Clear and Upload Another"):
+        st.rerun()
+
+else:
+    st.info("Please upload an image to begin.")
