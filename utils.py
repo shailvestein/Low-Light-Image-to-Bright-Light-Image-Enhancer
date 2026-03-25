@@ -12,13 +12,11 @@ import os
 import time
 import sys
 
-import torch
 import numpy as np
 from piq import ssim, psnr
 import lpips
 
 import cv2
-import numpy as np
 
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
