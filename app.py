@@ -2,7 +2,15 @@ import streamlit as st
 import cv2
 import numpy as np
 import time
-from utils import RetinexUNet, ZeroDCENet, FusionNet
+from utils import load_weights
+from Enhancer import Enhancer
+
+@st.cache_resource
+def load_enhancer():
+    enhancer = Enhancer(load_weights(), batch_size=4)
+    return enhancer
+
+enhancer = load_enhancer()
 
 # --- Page Configuration ---
 st.set_page_config(page_title="DeepSense AI Lab", layout="wide")
@@ -63,7 +71,7 @@ if active_file:
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
     with st.spinner("🤖 AI Model is analyzing..."):
-        ai_output, p_time = run_ai_inference(img_rgb)
+        ai_output, p_time = enhancer.enhance(img_rgb)
 
     st.markdown(f"### ✨ Result Ready (`{p_time}s`)")
 
