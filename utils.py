@@ -261,14 +261,11 @@ def download_weights(file_id, model_name):
         with st.spinner(f"Downloading model {model_name} weights from Google Drive..."):
             gdown.download(url, model_name, quiet=False)
     return model_name
-from model_arch import FusedModel  # Sirf model architecture class
 
-def load_weights():
-    model = FusedModel() # Khali model banayein
-    state_dict = torch.load("best-fused-model.pth", map_location='cpu') # Weights load karein
-    model.load_state_dict(state_dict) # Weights bhar dein
-    model.eval()
-    return model
+#----------------------------------------------------------------------------------#
+#            L O A D I N G    P R E - T R A I N E D   W E I G H T S                #
+#----------------------------------------------------------------------------------#
+
 def load_weights():
     download_weights(unet_model_id, unet_model_name)
     unet = RetinexUNet()
