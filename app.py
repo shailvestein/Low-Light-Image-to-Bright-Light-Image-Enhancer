@@ -54,10 +54,8 @@ if uploaded_file is not None:
 
     # STEP 2: AI Enhancement
     with st.spinner("AI is working on your image..."):
-        start_t = time.time()
         # Dhyan dein: Agar enhancer.enhance_image sirf image return karta hai:
-        ai_output = enhancer.enhance_image(img_input) 
-        p_time = round(time.time() - start_t, 3)
+        ai_output, p_time = enhancer.enhance_image(img_input) 
 
     # --- 6. DISPLAY SIDE-BY-SIDE ---
     st.success(f"Restoration Complete in {p_time} seconds!")
