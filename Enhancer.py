@@ -1,4 +1,3 @@
-    
 import torch
 import numpy as np
 import cv2
@@ -63,7 +62,7 @@ class Enhancer:
     
     def enhance_image(self, img):
 		img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        patch_size = 512
+        patch_size = 512 # Run inference over this patch size
         stride = 256  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
     
