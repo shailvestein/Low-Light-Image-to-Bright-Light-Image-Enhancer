@@ -22,76 +22,20 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 from torchvision.models import vgg16, VGG16_Weights
 
+batch_size=8
+patch_size=256
+random_samples = 16
+
+
+save_model_path = "/kaggle/working"
+unet_model_name = "best-unet-model.pth"
+dcenet_model_name = "best-dcenet-model.pth"
+fused_model_name = "best-fused-model.pth"
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 print(f"Device: {device}")
 
-class Augmentation:
-    def __init__(self):
-        self.blur = T.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 0.5))
-        self.noise_std = 0.02
-
-    def __call__(self, low_img, high_img):
-        # 1. Random Horizontal & Vertical flip
-        if random.random() > 0.5:
-            low_img = TF.hflip(low_img)
-            high_img = TF.hflip(high_img)
-
-        if random.random() > 0.5:
-            low_img = TF.vflip(low_img)
-            high_img = TF.vflip(high_img)
-
-        # Randomly add blur
-        if random.random() > 0.3:
-            low_img = self.blur(low_img)
-
-        # 3. Add Gaussian Noise
-        noise = torch.randn_like(low_img) * self.noise_std
-        low_img = torch.clamp(low_img + noise, 0, 1)
-
-        return low_img, high_img
-
-class LLIEDataset(Dataset):
-    def __init__(self, low_dir, high_dir=None, random_samples=None, patch_size=256):
-        super(LLIEDataset, self).__init__()
-        self.low_dir = low_dir
-        self.high_dir = high_dir
-        self.files = sorted(os.listdir(low_dir))
-        if random_samples:
-            self.random_samples = len(self.files) if len(self.files)<random_samples else random_samples
-            self.files = random.sample(self.files, self.random_samples)
-        self.patch_size = patch_size
-        self.aug = Augmentation()
-
-
-    def __len__(self):
-        return len(self.files)
-
-
-    def __getitem__(self, idx):
-        low_path = os.path.join(self.low_dir, self.files[idx])
-        low = cv2.imread(low_path)
-        low = cv2.cvtColor(low, cv2.COLOR_BGR2RGB)
-        low = low.astype(np.float32)/255.0
-        H, W, _ = low.shape
-        # random crop
-        y = np.random.randint(0, W - self.patch_size)
-        x = np.random.randint(0, H - self.patch_size)
-        low = low[x:x+self.patch_size, y:y+self.patch_size]
-        # to tensor
-        low = torch.from_numpy(low.copy()).permute(2,0,1)
-
-        if self.high_dir:
-            high_path = os.path.join(self.high_dir, self.files[idx])
-            high = cv2.imread(high_path)
-            high = cv2.cvtColor(high, cv2.COLOR_BGR2RGB)
-            high = high.astype(np.float32)/255.0
-            high = high[x:x+self.patch_size, y:y+self.patch_size]
-            # totensor
-            high = torch.from_numpy(high.copy()).permute(2,0,1)
-            return self.aug(low, high)
-
-        return low
 
 # Double Convolution Block (The building block)
 class DoubleConv(nn.Module):
@@ -348,28 +292,6 @@ class UNetTrainer:
             self.model.load_state_dict(torch.load(self.best_model_path))
             print(f"Best model from {self.best_model_path} loaded succeessfully!")
 
-batch_size=8
-patch_size=256
-random_samples = 16
-
-
-save_model_path = "/kaggle/working"
-unet_model_name = "best-unet-model.pth"
-dcenet_model_name = "best-dcenet-model.pth"
-fused_model_name = "best-fused-model.pth"
-
-unet_num_epochs = 5
-
-unet_model = RetinexUNet()
-criterion = RetinexLoss()
-
-optimizer = optim.AdamW(unet_model.parameters(), lr=1e-4, betas=(0.9, 0.999), weight_decay=0.01)
-scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=unet_num_epochs, eta_min=1e-6)
-unet_trainer = UNetTrainer(unet_model, criterion, optimizer, scheduler)
-
-# unet_trainer.load_best_model_for_inference("/kaggle/input/models/shaileshkumarvishwak/llie-fused-models/pytorch/default/1/best-unet-model.pth")
-
-unet_trainer.fit(train_loader, epochs=unet_num_epochs, val_loader=val_loader, save_model_path=save_model_path, model_name=unet_model_name)
 
 
 class ScoreCalculator:
@@ -886,17 +808,3 @@ class FusedTrainer:
             self.best_model_path = path
             self.model.load_state_dict(torch.load(self.best_model_path))
             print(f"Best model from {self.best_model_path} loaded succeessfully!")
-
-fused_num_epochs = 5
-
-fused_model = FusionNet(unet_model, dce_model)
-criterion = FusionLoss()
-optimizer = optim.AdamW(fused_model.parameters(), lr=1e-4, betas=(0.9, 0.999), weight_decay=0.01)
-scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=fused_num_epochs, eta_min=1e-7)
-
-fused_trainer = FusedTrainer(fused_model, criterion, optimizer, scheduler)
-
-fused_trainer.load_best_model_for_inference("/kaggle/input/models/shaileshkumarvishwak/llie-fused-models/pytorch/default/1/best-fused-model.pth")
-
-# fused_trainer.fit(train_loader, epochs=fused_num_epochs, val_loader=val_loader, save_model_path=save_model_path, model_name=fused_model_name)
-
