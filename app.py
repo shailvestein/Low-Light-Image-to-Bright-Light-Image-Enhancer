@@ -6,6 +6,7 @@ import io
 from PIL import Image
 from utils import load_weights
 from Enhancer import Enhancer
+import torch
 
 # --- 1. SET PAGE CONFIG ---
 st.set_page_config(layout="wide", page_title="DeepSense AI Lab", page_icon="✨")
@@ -22,9 +23,11 @@ def trigger_reset():
 @st.cache_resource
 def get_enhancer():
     unet, dcenet = load_weights()
-    return Enhancer(unet, dcenet, batch_size=4)
+    e1 = Enhancer(unet, batch_size=4)
+    e2 = Enhancer(dcenet, batch_size=4)
+    return e1, e2
 
-enhancer = get_enhancer()
+e1, e2 = get_enhancer()
 
 # --- 4. HELPERS ---
 def get_webp_bytes(image_rgb, quality=85):
@@ -56,8 +59,15 @@ if uploaded_file is not None:
     # --- FANCY PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         st.write("🧪 Analyzing scene lighting...")
-        ai_output, p_time = enhancer.enhance_image(img_input)
-        ai_output = cv2.cvtColor(ai_output, cv2.COLOR_BGR2RGB) # Blue tint fix
+        ai_1, p_1 = e1.enhance_image(img_input)
+        ai_2, p_2 = e2.enhance_image(img_input)
+        
+        ai_1 = cv2.cvtColor(ai_1, cv2.COLOR_BGR2RGB) # Blue tint fix
+        ai_2 = cv2.cvtColor(ai_2, cv2.COLOR_BGR2RGB)
+
+        fused = (ai_1 * alpha) + (1-alpha)*ai_2
+        ai_output = torch.sigmoid(fused)
+        p_time = p_1 + p_2
         
         st.write("🎨 Balancing color channels...")
         st.write("✅ Ready for download!")
