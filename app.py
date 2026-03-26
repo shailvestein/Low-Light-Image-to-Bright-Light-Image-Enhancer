@@ -66,7 +66,7 @@ if uploaded_file is not None:
         ai_2 = cv2.cvtColor(ai_2, cv2.COLOR_BGR2RGB)
 
         fused = (ai_1 * alpha) + (1-alpha)*ai_2
-        ai_output = torch.clamp(fused, 0,1)
+        ai_output = torch.clamp(torch.from_numpy(fused).float(), 0,1)
         p_time = p_1 + p_2
         
         st.write("🎨 Balancing color channels...")
