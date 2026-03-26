@@ -61,7 +61,7 @@ if uploaded_file is not None:
         st.write("🧪 Analyzing scene lighting...")
         ai_1, p_1 = e1.enhance_image(img_input)
         ai_2, p_2 = e2.enhance_image(img_input)
-        
+        alpha = 0.45
         ai_1 = cv2.cvtColor(ai_1, cv2.COLOR_BGR2RGB) # Blue tint fix
         ai_2 = cv2.cvtColor(ai_2, cv2.COLOR_BGR2RGB)
 
