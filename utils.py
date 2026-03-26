@@ -282,5 +282,5 @@ def load_weights():
     state_dict = torch.load(fused_model_name, map_location=device)
     fusednet.load_state_dict(state_dict)
 
-    return fusednet
+    return unet, dcenet
 
