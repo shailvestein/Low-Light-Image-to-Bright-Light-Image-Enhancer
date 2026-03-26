@@ -67,6 +67,7 @@ if uploaded_file is not None:
 
         fused = (ai_1 * alpha) + (1-alpha)*ai_2
         ai_output = torch.clamp(torch.from_numpy(fused).float(), 0,1)
+        ai_output = ai_output.numpy()
         p_time = p_1 + p_2
         
         st.write("🎨 Balancing color channels...")
