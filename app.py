@@ -21,8 +21,8 @@ def trigger_reset():
 # --- 3. MODEL LOADING ---
 @st.cache_resource
 def get_enhancer():
-    model_unet, model_dcenet = load_weights()
-    return Enhancer(model_dcenet, batch_size=4)
+    unet, dcenet = load_weights()
+    return Enhancer(unet, dcenet, batch_size=4)
 
 enhancer = get_enhancer()
 
