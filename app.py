@@ -74,7 +74,8 @@ if uploaded_file is not None:
             
             st.write("🎨 Balancing color channels...")
             # Convert to uint8 RGB for display
-            enhc_img_display = process_output_for_display(raw_output)
+            # enhc_img_display = process_output_for_display(raw_output)
+            raw_output = raw_output.detach().permute(3, 0, 1).cpu().numpy()
             
             status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
         except Exception as e:
