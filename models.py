@@ -257,12 +257,12 @@ def download_weights(file_id, model_name):
 
 def load_weights():
     download_weights(gmfn_model_id, gmfn_model_name)
-    gmfn_model = GeneralMethodFlowNetwork
+    gmfn_model = GeneralMethodFlowNetwork()
     state_dict = torch.load(gmfn_model_name, map_location=device)
     gmfn_model.load_state_dict(state_dict)
     
     download_weights(retinex_model_id, retinex_model_name)
-    retinex_model = ZeroDCENet(n_iter=8)
+    retinex_model = RetinexUNet()
     state_dict = torch.load(retinex_model_name, map_location=device)
     retinex_model.load_state_dict(state_dict)
 
