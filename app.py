@@ -74,8 +74,8 @@ if uploaded_file is not None:
     # Load Image
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     img_bgr = cv2.imdecode(file_bytes, 1)
-    img_rgb_raw = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    img_input = pre_process_resize(img_rgb_raw, target_width=1024)
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    # img_input = pre_process_resize(img_rgb_raw, target_width=1024)
 
     # --- FANCY PROCESSING ---
     enhc_img_display = None
@@ -85,11 +85,11 @@ if uploaded_file is not None:
         try:
             st.write("🧪 Analyzing scene lighting...")
             # Run Enhancer (Ensure enhancer_2 uses the model correctly)
-            raw_output, pt1 = enhancer_1.enhance_image(img_input)
-            raw_output = cv2.cvtColor(raw_output, cv2.COLOR_BGR2RGB)
+            raw_output, pt1 = enhancer_1.enhance_image(img_rgb/255.0)
             raw_output, pt2 = enhancer_2.enhance_image(raw_output)
             st.write("🎨 Balancing color channels...")
             # Convert to uint8 RGB for display
+            raw_output = raw_output.permute(1, 2, 0).detach().cpu().numpy()
             enhc_img_display = process_output_for_display(raw_output)
             p_time = pt1 + pt2
             status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
@@ -105,7 +105,7 @@ if uploaded_file is not None:
             st.image(img_input, use_container_width=True)
         with col2:
             st.markdown("<h5 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h5>", unsafe_allow_html=True)
-            st.image(enhc_img_display, use_container_width=True)
+            st.image(raw_output, use_container_width=True)
 
         # --- ACTIONS ---
         st.divider()
