@@ -53,7 +53,7 @@ if uploaded_file is not None:
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         # Direct enhancement call
         # Make sure your Enhancer class returns a proper uint8 numpy array
-        img_input = (img_input/255.0).astype(np.float32))
+        img_input = (img_input/255.0).astype(np.float32)
         enhc_img, p_time = enhancer_1.enhance_image(img_input)
         status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
 
