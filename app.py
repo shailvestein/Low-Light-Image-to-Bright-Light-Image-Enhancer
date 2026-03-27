@@ -6,7 +6,6 @@ import io
 from PIL import Image
 from models import load_weights
 from Enhancer import Enhancer
-import torch
 
 # --- 1. SET PAGE CONFIG ---
 st.set_page_config(layout="wide", page_title="DeepSense AI Lab", page_icon="✨")
@@ -53,9 +52,10 @@ if uploaded_file is not None:
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         # Direct enhancement call
         # Make sure your Enhancer class returns a proper uint8 numpy array
-        enhc_img, p_time = enhancer_1.enhance_image(img_input)
+        enhc_img, p2 = enhancer_1.enhance_image(img_input)
         emhc_img = enhc_img * 255
-        
+        enhc_img, p1 = enhancer_2.enhance_image(img_input)
+        p_time = p1 + p2
         status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
 
     # --- DISPLAY ---
