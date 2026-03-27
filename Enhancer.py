@@ -5,15 +5,13 @@ import time
 from torch.utils.data import DataLoader
 
 class Enhancer:
-    def __init__(self, model1, model2, batch_size):
+    def __init__(self, model, batch_size, name='ret'):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model1 = model1.to(self.device)
-        self.model1.eval()
-        self.model2 = model2.to(self.device)
-        self.model2.eval()
+        self.model = model1.to(self.device)
         self.batch_size = batch_size
+        self.name = name
     
-    def get_ultra_sharp_mask(self, patch_size, fade_width=32):
+    def get_ultra_sharp_mask(self, patch_size, fade_width=64):
         """
         Creates a mask that is 1.0 in the center and drops off sharply at edges.
         The cubic power (pow 3) ensures the center 'truth' dominates, fixing blur.
@@ -36,7 +34,7 @@ class Enhancer:
         canvas = torch.zeros((3, nh, nw), dtype=torch.float32)
         weight_sum = torch.zeros((1, nh, nw), dtype=torch.float32)
         # Use a wider fade for smoother color transitions between patches
-        mask = self.get_ultra_sharp_mask(patch_size, fade_width=32)
+        mask = self.get_ultra_sharp_mask(patch_size, fade_width=64)
         for idx, (i, j) in enumerate(coords):
             patch = patch_tensors[idx].cpu().float()
             # 1. RANGE CHECK: Standardize to [0, 1]
@@ -58,8 +56,8 @@ class Enhancer:
     def enhance_image(self, img):
         start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        patch_size = 128 # Run inference over this patch size
-        stride = 64  # Essential 50% overlap for spline blending
+        patch_size = 256 # Run inference over this patch size
+        stride = 128  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
         pad_h = (patch_size - h % stride) % stride + (patch_size - stride)
@@ -79,9 +77,11 @@ class Enhancer:
         enhanced_list = []
         with torch.no_grad():
             for batch in loader:
-                out1 = self.model1(batch.to(self.device))
-                _, _, out2 = self.model2(out1)
-                enhanced_list.extend([p.cpu() for p in out2])
+                if self.name.startswith('ret'):
+                    _, _, out = self.model2(batch.to(self.device))
+                else:
+                    out = self.model1(batch.to(self.device))
+                enhanced_list.extend([p.cpu() for p in out])
         output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
         return output, time.time()-start_time
 
