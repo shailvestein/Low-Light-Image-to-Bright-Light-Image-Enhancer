@@ -26,8 +26,8 @@ def trigger_reset():
 @st.cache_resource
 def get_enhancer():
     gfmn_model, retinex_model = load_weights()
-    enhancer_1 = Enhancer(gfmn_model, name='gfmn', batch_size=4)
-    enhancer_2 = Enhancer(retinex_model, name='retinex', batch_size=4)
+    enhancer_1 = Enhancer(gfmn_model, name='gfmn', batch_size=2)
+    enhancer_2 = Enhancer(retinex_model, name='retinex', batch_size=2)
     return enhancer_1, enhancer_2
 
 enhancer_1, enhancer_2 = get_enhancer()
