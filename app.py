@@ -76,7 +76,7 @@ if uploaded_file is not None:
         enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
         enhc_img = torch.clamp(torch.from_numpy(enhc_img).float(), 0,1)
         enhc_img = enhc_img.numpy()  
-        p_time = pt1 + pt2
+        p_time = pt1 + 0
         st.write("🎨 Balancing color channels...")
         st.write("✅ Ready for download!")
         status.update(label=f"✨ Magic Done in {p_time:.0f}s!", state="complete", expanded=False)
