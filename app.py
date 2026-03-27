@@ -36,6 +36,15 @@ def get_image_bytes(image_np):
     img.save(buf, format='PNG') # PNG is safe and lossless
     return buf.getvalue()
 
+def resize_to_2k(img, target_width=2048):
+    h, w = img.shape[:2]
+    if w > target_width:
+        aspect_ratio = h / w
+        new_width = target_width
+        new_height = int(new_width * aspect_ratio)        
+        img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+    return img
+    
 # --- 5. UI HEADER ---
 st.markdown("<h1 style='text-align: center; color: #00d4ff;'>📸 DeepSense AI Light Restoration</h1>", unsafe_allow_html=True)
 
@@ -47,11 +56,10 @@ if uploaded_file is not None:
     # Load Image
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     img_input = cv2.imdecode(file_bytes, 1)
+    img_input = resize_to_2k(img_input)
 
     # --- PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
-        # Direct enhancement call
-        # Make sure your Enhancer class returns a proper uint8 numpy array
         enhc_img, p2 = enhancer_1.enhance_image(img_input)
         emhc_img = enhc_img * 255
         enhc_img, p1 = enhancer_2.enhance_image(enhc_img)
@@ -82,5 +90,25 @@ if uploaded_file is not None:
 else:
     st.info("👋 Welcome! Please upload a photo to start.")
 
-# --- 7. FOOTER ---
-st.markdown("<br><div style='text-align: center; color: #888;'>Powered by Shailesh Vishwakarma</div>", unsafe_allow_html=True)
+# --- 7. FOOTER (With Clickable Email) ---
+st.markdown("<br><br>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <div style='text-align: center; border-top: 1px solid #333; padding-top: 20px;'>
+        <p style='color: #888; font-size: 13px; margin-bottom: 5px;'>
+            Built with PyTorch & OpenCV
+        </p>
+        <p style='font-size: 14px;'>
+            <span style='color: #555;'>Have a suggestion? </span>
+            <a href="mailto:shailvestein.careers@gmail.com?subject=Feedback for DeepSense AI Lab" 
+               style="color: #00d4ff; text-decoration: none; font-weight: bold;">
+               📩 Contact Developer
+            </a>
+        </p>
+        <p style='color: #00d4ff; font-weight: bold; font-size: 15px; margin-top: 10px;'>
+            Powered by Shailesh Vishwakarma
+        </p>
+    </div>
+    """, 
+    unsafe_allow_html=True
+)
