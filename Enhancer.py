@@ -46,9 +46,9 @@ class Enhancer:
         full_tensor = canvas / (weight_sum + 1e-8)
         img_np = full_tensor.permute(1, 2, 0).numpy()
         # COLOR & CONTRAST FIX:
-        p98 = np.percentile(img_np, 98)
-        if p98 > 0.05:
-            img_np = np.clip(img_np / p98, 0, 1)
+        # p98 = np.percentile(img_np, 98)
+        # if p98 > 0.05:
+        #     img_np = np.clip(img_np / p98, 0, 1)
         # Final Conversion and Precise Crop
         final_img = (img_np * 255.0).astype(np.uint8)
         return final_img[:h, :w, :]
