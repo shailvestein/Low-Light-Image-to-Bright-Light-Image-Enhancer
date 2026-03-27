@@ -54,7 +54,8 @@ if uploaded_file is not None:
         # Direct enhancement call
         # Make sure your Enhancer class returns a proper uint8 numpy array
         enhc_img, p_time = enhancer_1.enhance_image(img_input)
-        emhc_img = torch.clip(enhc_img, 0, 255)
+        emhc_img = enhc_img * 255
+        
         status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
 
     # --- DISPLAY ---
