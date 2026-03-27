@@ -4,7 +4,7 @@ import numpy as np
 import time
 import io
 from PIL import Image
-from utils import load_weights
+from models import load_weights
 from Enhancer import Enhancer
 import torch
 
@@ -22,9 +22,9 @@ def trigger_reset():
 # --- 3. MODEL LOADING ---
 @st.cache_resource
 def get_enhancer():
-    unet, dcenet = load_weights()
-    e1 = Enhancer(unet, batch_size=4)
-    e2 = Enhancer(dcenet, batch_size=4)
+    gfmn_model, retinex_model = load_weights()
+    e1 = Enhancer(gfmn_model, batch_size=4)
+    e2 = Enhancer(retinex_model, batch_size=4)
     return e1, e2
 
 e1, e2 = get_enhancer()
@@ -59,15 +59,11 @@ if uploaded_file is not None:
     # --- FANCY PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         st.write("🧪 Analyzing scene lighting...")
-        ai_1, p_1 = e1.enhance_image(img_input)
-        ai_2, p_2 = e2.enhance_image(img_input)
-        alpha = 0.45
-        ai_1 = cv2.cvtColor(ai_1, cv2.COLOR_BGR2RGB) # Blue tint fix
-        ai_2 = cv2.cvtColor(ai_2, cv2.COLOR_BGR2RGB)
-
-        fused = (ai_1 * alpha) - (1-alpha) * ai_2
-        ai_output = torch.clamp(torch.from_numpy(fused).float(), 0,1)
-        ai_output = ai_output.numpy()
+        enhc_img, p_1 = e1.enhance_image(img_input)
+        enhc_img, p_2 = e2.enhance_image(enhc_img)
+        enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
+        enhc_img = torch.clamp(torch.from_numpy(enhc_img).float(), 0,1)
+        enhc_img = enhc_img.numpy()
         p_time = p_1 + p_2
         
         st.write("🎨 Balancing color channels...")
