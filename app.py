@@ -4,8 +4,9 @@ import numpy as np
 import time
 import io
 from PIL import Image
-from utils import load_weights
+from models import load_weights
 from Enhancer import Enhancer
+import torch
 
 # --- 1. SET PAGE CONFIG ---
 st.set_page_config(layout="wide", page_title="DeepSense AI Lab", page_icon="✨")
@@ -21,10 +22,12 @@ def trigger_reset():
 # --- 3. MODEL LOADING ---
 @st.cache_resource
 def get_enhancer():
-    model = load_weights()
-    return Enhancer(model, batch_size=4)
+    gfmn_model, retinex_model = load_weights()
+    e1 = Enhancer(gfmn_model, batch_size=4)
+    e2 = Enhancer(retinex_model, batch_size=4)
+    return e1, e2
 
-enhancer = get_enhancer()
+e1, e2 = get_enhancer()
 
 # --- 4. HELPERS ---
 def get_webp_bytes(image_rgb, quality=85):
@@ -56,8 +59,12 @@ if uploaded_file is not None:
     # --- FANCY PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         st.write("🧪 Analyzing scene lighting...")
-        ai_output, p_time = enhancer.enhance_image(img_input)
-        ai_output = cv2.cvtColor(ai_output, cv2.COLOR_BGR2RGB) # Blue tint fix
+        enhc_img, p_1 = e1.enhance_image(img_input)
+        enhc_img, p_2 = e2.enhance_image(enhc_img)
+        enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
+        enhc_img = torch.clamp(torch.from_numpy(enhc_img).float(), 0,1)
+        enhc_img = enhc_img.numpy()
+        p_time = p_1 + p_2
         
         st.write("🎨 Balancing color channels...")
         st.write("✅ Ready for download!")
