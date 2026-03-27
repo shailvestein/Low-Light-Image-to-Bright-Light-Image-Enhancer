@@ -8,6 +8,9 @@ from PIL import Image
 from models import load_weights
 from Enhancer import Enhancer
 
+MAX_WIDTH, MAX_HEIGHT = 2880, 1620
+MAX_FILE_SIZE = 5 * MAX_WIDTH * MAX_HEIGHT
+
 # --- 1. SET PAGE CONFIG ---
 st.set_page_config(layout="wide", page_title="DeepSense AI Lab", page_icon="✨")
 
@@ -37,7 +40,7 @@ def get_image_bytes(image_np):
     img.save(buf, format='PNG') # PNG is safe and lossless
     return buf.getvalue()
 
-def resize_to_2k(img, target_width=4196):
+def resize_to_2k(img, target_width=MAX_WIDTH):
     h, w = img.shape[:2]
     if w > target_width:
         aspect_ratio = h / w
@@ -53,8 +56,7 @@ st.markdown("<h1 style='text-align: center; color: #00d4ff;'>📸 DeepSense AI L
 uploader_key = f"uploader_{st.session_state.reset_counter}"
 uploaded_file = st.file_uploader("Upload Low-light Image", type=["jpg", "jpeg", "png"], key=uploader_key)
 enhc_img = None
-MAX_WIDTH, MAX_HEIGHT = 4196, 4196
-MAX_FILE_SIZE = 5 * MAX_WIDTH * MAX_HEIGHT
+
 if uploaded_file is not None:
     # Check file size
     if uploaded_file.size > MAX_FILE_SIZE:
