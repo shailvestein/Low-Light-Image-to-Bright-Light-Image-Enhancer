@@ -92,6 +92,7 @@ class Enhancer:
         # Inference
         loader = DataLoader(patches, self.batch_size)
         enhanced_list = []
+        self.model.eval()
         with torch.no_grad():
             for batch in loader:
                 if self.name.startswith('ret'):
