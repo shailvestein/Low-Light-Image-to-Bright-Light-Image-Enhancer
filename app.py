@@ -89,7 +89,7 @@ if uploaded_file is not None:
             st.image(img_input, use_container_width=True)
         with col2:
             st.markdown("<h5 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h5>", unsafe_allow_html=True)
-            st.image(enhc_img_display, use_container_width=True)
+            st.image(raw_output, use_container_width=True)
 
         # --- ACTIONS ---
         st.divider()
