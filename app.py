@@ -79,7 +79,7 @@ if uploaded_file is not None:
     st.divider()
     c1, c2, _ = st.columns([1, 1, 1])
     with c1:
-        webp_data = get_webp_bytes(ai_output, quality=90)
+        webp_data = get_webp_bytes(enhc_img , quality=90)
         st.download_button("📩 Download High-Res Result", data=webp_data, file_name="enhanced.webp", mime="image/webp")
     with c2:
         if st.button("🔄 Enhance Another Photo"):
