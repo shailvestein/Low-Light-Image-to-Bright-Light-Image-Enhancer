@@ -52,7 +52,7 @@ st.markdown("<h1 style='text-align: center; color: #00d4ff;'>📸 DeepSense AI L
 # --- 6. UPLOADER ---
 uploader_key = f"uploader_{st.session_state.reset_counter}"
 uploaded_file = st.file_uploader("Upload Low-light Image", type=["jpg", "jpeg", "png"], key=uploader_key)
-
+enhc_img = None
 if uploaded_file is not None:
     # Load Image
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
@@ -82,21 +82,22 @@ if uploaded_file is not None:
 st.divider()
 c1, c2, _ = st.columns([1, 1, 1])
 
-with c1:
-    img_bytes = get_image_bytes(enhc_img)
-    # Download button click hone par Streamlit refresh hota hai
-    if st.download_button("📩 Download Result", data=img_bytes, file_name="enhanced.png", mime="image/png"):
-        # User ne download kar liya, ab memory clear karein
-        st.success("Download started! Cleaning up server memory...")
-        
-        # Variables ko delete karein
-        if 'img_input' in locals(): del img_input
-        if 'enhc_img' in locals(): del enhc_img
-        if 'img_bytes' in locals(): del img_bytes
-        
-        # RAM se force-clear karein
-        gc.collect() 
-        torch.cuda.empty_cache() # Agar GPU use ho raha hai toh
+if enhc_img is not None:
+    with c1:
+        img_bytes = get_image_bytes(enhc_img)
+        # Download button click hone par Streamlit refresh hota hai
+        if st.download_button("📩 Download Result", data=img_bytes, file_name="enhanced.png", mime="image/png"):
+            # User ne download kar liya, ab memory clear karein
+            st.success("Download started! Cleaning up server memory...")
+            
+            # Variables ko delete karein
+            if 'img_input' in locals(): del img_input
+            if 'enhc_img' in locals(): del enhc_img
+            if 'img_bytes' in locals(): del img_bytes
+            
+            # RAM se force-clear karein
+            gc.collect() 
+            torch.cuda.empty_cache() # Agar GPU use ho raha hai toh
         
 with c2:
     if st.button("🔄 Enhance Another Photo"):
