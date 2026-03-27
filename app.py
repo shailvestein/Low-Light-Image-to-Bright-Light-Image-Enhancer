@@ -70,8 +70,8 @@ if uploaded_file is not None:
     # --- FANCY PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         st.write("🧪 Analyzing scene lighting...")
-        enhc_img, pt1 = enhancer_1.enhance_image(img_input)
-        enhc_img, pt2 = enhancer_2.enhance_image(enhc_img)
+        # enhc_img, pt1 = enhancer_1.enhance_image(img_input)
+        enhc_img, pt11 = enhancer_2.enhance_image(img_input)
         # enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
         enhc_img = torch.clip(torch.from_numpy(enhc_img).float(), 0,1)
         enhc_img = enhc_img.numpy()  
