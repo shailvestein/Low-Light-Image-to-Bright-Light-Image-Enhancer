@@ -30,6 +30,17 @@ enhancer = get_enhancer()
 
 # --- 4. HELPERS ---
 def get_webp_bytes(image_rgb, quality=85):
+    # 1. Convert from Tensor to Numpy (if applicable)
+    if hasattr(image_rgb, 'detach'):
+        image_rgb = image_rgb.detach().cpu().numpy()
+    
+    # 2. Ensure it's in the 0-255 range and uint8 type
+    # If your model outputs 0.0 to 1.0, multiply by 255 first
+    if image_rgb.max() <= 1.0:
+        image_rgb = (image_rgb * 255).astype(np.uint8)
+    else:
+        image_rgb = image_rgb.astype(np.uint8)
+
     img = Image.fromarray(image_rgb)
     buf = io.BytesIO()
     img.save(buf, format='WEBP', quality=quality, method=6)
