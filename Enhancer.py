@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 class Enhancer:
     def __init__(self, model, batch_size, name='ret'):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = model1.to(self.device)
+        self.model = model.to(self.device)
         self.batch_size = batch_size
         self.name = name
     
