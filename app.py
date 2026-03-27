@@ -26,7 +26,7 @@ def get_enhancer():
     enhancer = Enhancer(gfmn_model, retinex_model, batch_size=4)
     return enhancer
 
-e1, e2 = get_enhancer()
+enhancer = get_enhancer()
 
 # --- 4. HELPERS ---
 def get_webp_bytes(image_rgb, quality=85):
