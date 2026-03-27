@@ -23,9 +23,8 @@ def trigger_reset():
 @st.cache_resource
 def get_enhancer():
     gfmn_model, retinex_model = load_weights()
-    e1 = Enhancer(gfmn_model, batch_size=4)
-    e2 = Enhancer(retinex_model, batch_size=4)
-    return e1, e2
+    enhancer = Enhancer(gfmn_model, retinex_model, batch_size=4)
+    return enhancer
 
 e1, e2 = get_enhancer()
 
@@ -59,13 +58,10 @@ if uploaded_file is not None:
     # --- FANCY PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         st.write("🧪 Analyzing scene lighting...")
-        enhc_img, p_1 = e1.enhance_image(img_input)
-        enhc_img, p_2 = e2.enhance_image(enhc_img)
+        enhc_img, p_time = enhancer.enhance_image(img_input)
         enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
         enhc_img = torch.clamp(torch.from_numpy(enhc_img).float(), 0,1)
-        enhc_img = enhc_img.numpy()
-        p_time = p_1 + p_2
-        
+        enhc_img = enhc_img.numpy()        
         st.write("🎨 Balancing color channels...")
         st.write("✅ Ready for download!")
         status.update(label=f"✨ Magic Done in {p_time:.0f}s!", state="complete", expanded=False)
