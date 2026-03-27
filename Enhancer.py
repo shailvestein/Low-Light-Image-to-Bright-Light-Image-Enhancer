@@ -11,7 +11,7 @@ class Enhancer:
         self.batch_size = batch_size
         self.name = name
     
-    def get_ultra_sharp_mask(self, patch_size, fade_width=128):
+    def get_ultra_sharp_mask(self, patch_size, fade_width=32):
         """
         Creates a mask that is 1.0 in the center and drops off sharply at edges.
         The cubic power (pow 3) ensures the center 'truth' dominates, fixing blur.
@@ -73,8 +73,8 @@ class Enhancer:
     def enhance_image(self, img):
         start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        patch_size = 1024 # Run inference over this patch size
-        stride = 512  # Essential 50% overlap for spline blending
+        patch_size = 256 # Run inference over this patch size
+        stride = 128  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
         pad_h = (patch_size - h % stride) % stride + (patch_size - stride)
