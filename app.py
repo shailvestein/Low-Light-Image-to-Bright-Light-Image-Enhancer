@@ -73,7 +73,7 @@ if uploaded_file is not None:
         st.image(img_input, width='stretch')
     with col2:
         st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
-        st.image(ai_output, width='stretch')
+        st.image(enhc_img , width='stretch')
 
     # --- DOWNLOAD & RESET ---
     st.divider()
