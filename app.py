@@ -43,7 +43,7 @@ def process_output_for_display(img_data):
     else:
         img_data = img_data.clip(0, 255).astype(np.uint8)
     
-    return img_data
+    return cv2.cvtColor(img_data, cv2.COLOR_BGR2RGB)
 
 def get_webp_bytes(image_uint8, quality=90):
     """Safely converts uint8 numpy array to WebP bytes."""
