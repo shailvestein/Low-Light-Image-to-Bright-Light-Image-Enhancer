@@ -33,26 +33,43 @@ class Enhancer:
         nh, nw = padded_size
         canvas = torch.zeros((3, nh, nw), dtype=torch.float32)
         weight_sum = torch.zeros((1, nh, nw), dtype=torch.float32)
-        # Use a wider fade for smoother color transitions between patches
+        
         mask = self.get_ultra_sharp_mask(patch_size, fade_width=64)
+        
         for idx, (i, j) in enumerate(coords):
-            patch = patch_tensors[idx].cpu().float()
-            # 1. RANGE CHECK: Standardize to [0, 1]
+            # Patch format: (C, H, W)
+            patch = patch_tensors[idx].float()
+            
+            # Range check: ensure [0, 1]
             if patch.max() > 1.5:
                 patch = patch / 255.0
+                
             canvas[:, i:i+patch_size, j:j+patch_size] += (patch * mask)
             weight_sum[:, i:i+patch_size, j:j+patch_size] += mask
-        # Precise Division
+    
+        # 1. Normalize by weights
         full_tensor = canvas / (weight_sum + 1e-8)
+        
+        # 2. Final Clamp to [0, 1] - CRITICAL
+        full_tensor = torch.clamp(full_tensor, 0, 1)
+        
+        # 3. Permute to (H, W, C) for Image format
         img_np = full_tensor.permute(1, 2, 0).numpy()
-        # COLOR & CONTRAST FIX:
+    
+        # 4. Safer Contrast Adjustment (Only if needed)
+        # Agar image bohot dark lag rahi hai tabhi use karein
+        # Isko comment karke check karein pehle white screen hat rahi hai ya nahi
         # p98 = np.percentile(img_np, 98)
-        # if p98 > 0.05:
-        #     img_np = np.clip(img_np / p98, 0, 1)
-        # Final Conversion and Precise Crop
+        # if 0.01 < p98 < 0.9: 
+        #     img_np = np.clip(img_np / (p98 + 1e-6), 0, 1)
+    
+        # 5. Final Conversion
         final_img = (img_np * 255.0).astype(np.uint8)
+        
+        # Precise Crop to original dimensions
         return final_img[:h, :w, :]
 
+    
     def enhance_image(self, img):
         start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
