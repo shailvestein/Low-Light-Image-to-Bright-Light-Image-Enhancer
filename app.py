@@ -103,8 +103,8 @@ with c2:
         # Reset session and clear memory
         gc.collect()
         trigger_reset()
-else:
-    st.info("👋 Welcome! Please upload a photo to start.")
+    else:
+        st.info("👋 Welcome! Please upload a photo to start.")
 
 # --- 7. FOOTER (With Clickable Email) ---
 st.markdown("<br><br>", unsafe_allow_html=True)
