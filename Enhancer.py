@@ -79,9 +79,9 @@ class Enhancer:
         enhanced_list = []
         with torch.no_grad():
             for batch in loader:
-                out = self.model1(batch.to(self.device))
-                R, L, out = self.model2(out)
-                enhanced_list.extend([p.cpu() for p in out])
+                out1 = self.model1(batch.to(self.device))
+                R, L, out2 = self.model2(out1)
+                enhanced_list.extend([p.cpu() for p in out2])
         output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
         return output, time.time()-start_time
 
