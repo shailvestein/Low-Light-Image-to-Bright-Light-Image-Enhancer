@@ -46,14 +46,12 @@ uploaded_file = st.file_uploader("Upload Low-light Image", type=["jpg", "jpeg", 
 if uploaded_file is not None:
     # Load Image
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-    img_bgr = cv2.imdecode(file_bytes, 1)
-    # img_input = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    img_input = cv2.imdecode(file_bytes, 1)
 
     # --- PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         # Direct enhancement call
         # Make sure your Enhancer class returns a proper uint8 numpy array
-        img_input = (img_input/255.0).astype(np.float32)
         enhc_img, p_time = enhancer_1.enhance_image(img_input)
         status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
 
