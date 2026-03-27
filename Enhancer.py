@@ -11,7 +11,7 @@ class Enhancer:
         self.batch_size = batch_size
         self.name = name
     
-    def get_ultra_sharp_mask(self, patch_size, fade_width=64):
+    def get_ultra_sharp_mask(self, patch_size, fade_width=32):
         """
         Creates a mask that is 1.0 in the center and drops off sharply at edges.
         The cubic power (pow 3) ensures the center 'truth' dominates, fixing blur.
@@ -34,7 +34,7 @@ class Enhancer:
         canvas = torch.zeros((3, nh, nw), dtype=torch.float32)
         weight_sum = torch.zeros((1, nh, nw), dtype=torch.float32)
         
-        mask = self.get_ultra_sharp_mask(patch_size, fade_width=64)
+        mask = self.get_ultra_sharp_mask(patch_size, fade_width=32)
         
         for idx, (i, j) in enumerate(coords):
             # Patch format: (C, H, W)
