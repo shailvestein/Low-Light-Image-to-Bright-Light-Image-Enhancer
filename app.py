@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import time
 import io
+import gc
 from PIL import Image
 from models import load_weights
 from Enhancer import Enhancer
@@ -76,17 +77,32 @@ if uploaded_file is not None:
         st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
         st.image(enhc_img, width='stretch')
 
-    # --- ACTIONS ---
-    st.divider()
-    c1, c2, _ = st.columns([1, 1, 1])
-    with c1:
-        # Minimal download logic
-        img_bytes = get_image_bytes(enhc_img)
-        st.download_button("📩 Download Result", data=img_bytes, file_name="enhanced.png", mime="image/png")
-    with c2:
-        if st.button("🔄 Enhance Another Photo"):
-            trigger_reset()
 
+# --- DOWNLOAD & CLEANUP ---
+st.divider()
+c1, c2, _ = st.columns([1, 1, 1])
+
+with c1:
+    img_bytes = get_image_bytes(enhc_img)
+    # Download button click hone par Streamlit refresh hota hai
+    if st.download_button("📩 Download Result", data=img_bytes, file_name="enhanced.png", mime="image/png"):
+        # User ne download kar liya, ab memory clear karein
+        st.success("Download started! Cleaning up server memory...")
+        
+        # Variables ko delete karein
+        if 'img_input' in locals(): del img_input
+        if 'enhc_img' in locals(): del enhc_img
+        if 'img_bytes' in locals(): del img_bytes
+        
+        # RAM se force-clear karein
+        gc.collect() 
+        torch.cuda.empty_cache() # Agar GPU use ho raha hai toh
+        
+with c2:
+    if st.button("🔄 Enhance Another Photo"):
+        # Reset session and clear memory
+        gc.collect()
+        trigger_reset()
 else:
     st.info("👋 Welcome! Please upload a photo to start.")
 
