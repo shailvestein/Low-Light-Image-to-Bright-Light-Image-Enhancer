@@ -13,7 +13,7 @@ class Enhancer:
         self.model2.eval()
         self.batch_size = batch_size
     
-    def get_ultra_sharp_mask(self, patch_size, fade_width=64):
+    def get_ultra_sharp_mask(self, patch_size, fade_width=32):
         """
         Creates a mask that is 1.0 in the center and drops off sharply at edges.
         The cubic power (pow 3) ensures the center 'truth' dominates, fixing blur.
@@ -36,7 +36,7 @@ class Enhancer:
         canvas = torch.zeros((3, nh, nw), dtype=torch.float32)
         weight_sum = torch.zeros((1, nh, nw), dtype=torch.float32)
         # Use a wider fade for smoother color transitions between patches
-        mask = self.get_ultra_sharp_mask(patch_size, fade_width=64)
+        mask = self.get_ultra_sharp_mask(patch_size, fade_width=32)
         for idx, (i, j) in enumerate(coords):
             patch = patch_tensors[idx].cpu().float()
             # 1. RANGE CHECK: Standardize to [0, 1]
@@ -58,8 +58,8 @@ class Enhancer:
     def enhance_image(self, img):
         start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        patch_size = 256 # Run inference over this patch size
-        stride = 128  # Essential 50% overlap for spline blending
+        patch_size = 128 # Run inference over this patch size
+        stride = 64  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
         pad_h = (patch_size - h % stride) % stride + (patch_size - stride)
