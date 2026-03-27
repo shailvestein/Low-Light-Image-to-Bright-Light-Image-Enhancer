@@ -65,29 +65,25 @@ if uploaded_file is not None:
         # Load Image
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         img_input = cv2.imdecode(file_bytes, 1)
-        h, w = img_input.shape[:2]
-        if h>MAX_HEIGHT or w>MAX_WIDTH:
-            st.error(f"❌ File dimensions exceeds {MAX_HEIGHT}x{MAX_WIDTH}")
-        else:
-            img_input = resize_to_2k(img_input)
-        
-            # --- PROCESSING ---
-            with st.status("🚀 AI Engine is working...", expanded=True) as status:
-                enhc_img, p2 = enhancer_1.enhance_image(img_input)
-                emhc_img = enhc_img * 255
-                enhc_img, p1 = enhancer_2.enhance_image(enhc_img)
-                enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
-                p_time = p1 + p2
-                status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
-        
-            # --- DISPLAY ---
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown("<h4 style='text-align: center;'>🌑 Original</h4>", unsafe_allow_html=True)
-                st.image(cv2.cvtColor(img_input, cv2.COLOR_BGR2RGB), width='stretch')
-            with col2:
-                st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
-                st.image(enhc_img, width='stretch')
+        img_input = resize_to_2k(img_input)
+    
+        # --- PROCESSING ---
+        with st.status("🚀 AI Engine is working...", expanded=True) as status:
+            enhc_img, p2 = enhancer_1.enhance_image(img_input)
+            emhc_img = enhc_img * 255
+            enhc_img, p1 = enhancer_2.enhance_image(enhc_img)
+            enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
+            p_time = p1 + p2
+            status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
+    
+        # --- DISPLAY ---
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("<h4 style='text-align: center;'>🌑 Original</h4>", unsafe_allow_html=True)
+            st.image(cv2.cvtColor(img_input, cv2.COLOR_BGR2RGB), width='stretch')
+        with col2:
+            st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
+            st.image(enhc_img, width='stretch')
 
 
 # --- DOWNLOAD & CLEANUP ---
