@@ -65,7 +65,7 @@ if uploaded_file is not None:
         # Load Image
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         img_input = cv2.imdecode(file_bytes, 1)
-        h, w = img_bgr.shape[:2]
+        h, w = img_input.shape[:2]
         if h>MAX_HEIGHT or w>MAX_WIDTH:
             st.error(f"❌ File dimensions exceeds {MAX_HEIGHT}x{MAX_WIDTH}")
         else:
