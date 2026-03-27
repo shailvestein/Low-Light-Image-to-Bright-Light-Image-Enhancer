@@ -99,7 +99,7 @@ class Enhancer:
                     _, _, out = self.model(batch.to(self.device))
                 else:
                     out = self.model(batch.to(self.device))
-                enhanced_list.extend([p.cpu() for p in out])
+                enhanced_list.extend([p.cpu() for p in torch.clip(out, 0, 1)])
         output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
         return output, time.time()-start_time
 
