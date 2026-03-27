@@ -73,7 +73,7 @@ class Enhancer:
     def enhance_image(self, img):
         start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        patch_size = 256 # Run inference over this patch size
+        patch_size = 512 # Run inference over this patch size
         stride = 256  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
