@@ -63,10 +63,10 @@ if uploaded_file is not None:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("<h4 style='text-align: center;'>🌑 Original</h4>", unsafe_allow_html=True)
-        st.image(cv2.cvtColor(img_input, cv2.COLOR_BGR2RGB), use_container_width=True)
+        st.image(cv2.cvtColor(img_input, cv2.COLOR_BGR2RGB), width='stretch')
     with col2:
         st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
-        st.image(enhc_img, use_container_width=True)
+        st.image(enhc_img, width='stretch')
 
     # --- ACTIONS ---
     st.divider()
