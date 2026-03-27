@@ -37,7 +37,7 @@ def get_image_bytes(image_np):
     img.save(buf, format='PNG') # PNG is safe and lossless
     return buf.getvalue()
 
-def resize_to_2k(img, target_width=2048):
+def resize_to_2k(img, target_width=4196):
     h, w = img.shape[:2]
     if w > target_width:
         aspect_ratio = h / w
@@ -53,7 +53,7 @@ st.markdown("<h1 style='text-align: center; color: #00d4ff;'>📸 DeepSense AI L
 uploader_key = f"uploader_{st.session_state.reset_counter}"
 uploaded_file = st.file_uploader("Upload Low-light Image", type=["jpg", "jpeg", "png"], key=uploader_key)
 enhc_img = None
-MAX_WIDTH, MAX_HEIGHT = 4000, 4000
+MAX_WIDTH, MAX_HEIGHT = 4196, 4196
 MAX_FILE_SIZE = 5 * MAX_WIDTH * MAX_HEIGHT
 if uploaded_file is not None:
     # Check file size
