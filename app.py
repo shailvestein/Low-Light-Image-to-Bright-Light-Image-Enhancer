@@ -6,6 +6,7 @@ import io
 from PIL import Image
 from models import load_weights
 from Enhancer import Enhancer
+import torch
 
 # --- 1. SET PAGE CONFIG ---
 st.set_page_config(layout="wide", page_title="DeepSense AI Lab", page_icon="✨")
