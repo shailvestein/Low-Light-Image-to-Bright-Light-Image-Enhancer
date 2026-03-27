@@ -5,9 +5,10 @@ import time
 from torch.utils.data import DataLoader
 
 class Enhancer:
-    def __init__(self, model, batch_size):
+    def __init__(self, model1, model2, batch_size):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model = model.to(self.device)
+        self.model1 = model1.to(self.device)
+        self.model2 = model2.to(self.device)
         self.batch_size = batch_size
     
     def get_ultra_sharp_mask(self, patch_size, fade_width=64):
@@ -76,7 +77,8 @@ class Enhancer:
         enhanced_list = []
         with torch.no_grad():
             for batch in loader:
-                out, _ = self.model(batch.to(self.device))
+                out = self.model1(batch.to(self.device))
+                out = self.model2(out)
                 enhanced_list.extend([p.cpu() for p in out])
         output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
         return output, time.time()-start_time
