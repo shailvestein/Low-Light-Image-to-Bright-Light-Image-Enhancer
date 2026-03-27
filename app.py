@@ -62,8 +62,6 @@ if uploaded_file is not None:
     else:
         # Proceed with processing
         file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-        # Load Image
-        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
         img_input = cv2.imdecode(file_bytes, 1)
         img_input = resize_to_2k(img_input)
     
