@@ -11,7 +11,7 @@ class Enhancer:
         self.batch_size = batch_size
         self.name = name
     
-    def get_ultra_sharp_mask(self, patch_size, fade_width=32):
+    def get_ultra_sharp_mask(self, patch_size, fade_width=128):
         """
         Creates a mask that is 1.0 in the center and drops off sharply at edges.
         The cubic power (pow 3) ensures the center 'truth' dominates, fixing blur.
