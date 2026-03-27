@@ -241,7 +241,7 @@ class RetinexUNet(nn.Module):
 retinex_model_id = "1-QqQFKYESZ1vbKL64VUFghEKex16_WCe"
 gmfn_model_id = "1wXSlaCnqv8Byj385PHnz7esjBRzyWuFh"
 
-retinex_model_name = "rank-16-model-ret.pth""
+retinex_model_name = "rank-16-model-ret.pth"
 gmfn_model_name = "rank-16-model.pth"
 
 def download_weights(file_id, model_name):
