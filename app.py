@@ -71,7 +71,7 @@ if uploaded_file is not None:
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         st.write("🧪 Analyzing scene lighting...")
         enhc_img, pt1 = enhancer_1.enhance_image(img_input)
-        # enhc_img = torch.clamp(enhc_img, 0, 1)
+        enhc_img = torch.clamp(enhc_img, 0, 1)
         # enhc_img, pt2 = enhancer_1.enhance_image(enhc_img)
         enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
         enhc_img = torch.clamp(torch.from_numpy(enhc_img).float(), 0,1)
