@@ -43,7 +43,7 @@ def process_output_for_display(img_data):
     else:
         img_data = img_data.clip(0, 255).astype(np.uint8)
     
-    return cv2.cvtColor(img_data, cv2.COLOR_BGR2RGB)
+    return img_data
 
 def get_webp_bytes(image_uint8, quality=90):
     """Safely converts uint8 numpy array to WebP bytes."""
@@ -86,6 +86,7 @@ if uploaded_file is not None:
             st.write("🧪 Analyzing scene lighting...")
             # Run Enhancer (Ensure enhancer_2 uses the model correctly)
             raw_output, pt1 = enhancer_1.enhance_image(img_input)
+            raw_output = cv2.cvtColor(raw_output, cv2.COLOR_BGR2RGB)
             raw_output, pt2 = enhancer_2.enhance_image(raw_output)
             st.write("🎨 Balancing color channels...")
             # Convert to uint8 RGB for display
