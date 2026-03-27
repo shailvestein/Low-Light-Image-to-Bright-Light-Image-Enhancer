@@ -28,13 +28,13 @@ class Enhancer:
             mask[:, :, -(i+1)] *= val      # Right
         return mask
     
-    def combine_tensor_patches(self, patch_tensors, coords, original_size, padded_size, patch_size=256):
+    def combine_tensor_patches(self, patch_tensors, coords, original_size, padded_size, patch_size):
         h, w = original_size
         nh, nw = padded_size
         canvas = torch.zeros((3, nh, nw), dtype=torch.float32)
         weight_sum = torch.zeros((1, nh, nw), dtype=torch.float32)
         
-        mask = self.get_ultra_sharp_mask(patch_size, fade_width=32)
+        mask = self.get_ultra_sharp_mask(patch_size, fade_width=8)
         
         for idx, (i, j) in enumerate(coords):
             # Patch format: (C, H, W)
@@ -74,7 +74,7 @@ class Enhancer:
         start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         patch_size = 256 # Run inference over this patch size
-        stride = 64  # Essential 50% overlap for spline blending
+        stride = 256  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
         pad_h = (patch_size - h % stride) % stride + (patch_size - stride)
