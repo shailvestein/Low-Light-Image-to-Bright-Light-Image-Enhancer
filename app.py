@@ -23,10 +23,11 @@ def trigger_reset():
 @st.cache_resource
 def get_enhancer():
     gfmn_model, retinex_model = load_weights()
-    enhancer = Enhancer(gfmn_model, retinex_model, batch_size=1)
-    return enhancer
+    enhancer_1 = Enhancer(gfmn_model, name='gfmn', batch_size=4)
+    enhancer_2 = Enhancer(retinex_model, name='retinex', batch_size=4)
+    return enhancer_1, enhancer_2
 
-enhancer = get_enhancer()
+enhancer_1, enhancer_2 = get_enhancer()
 
 # --- 4. HELPERS ---
 def get_webp_bytes(image_rgb, quality=85):
@@ -69,10 +70,12 @@ if uploaded_file is not None:
     # --- FANCY PROCESSING ---
     with st.status("🚀 AI Engine is working...", expanded=True) as status:
         st.write("🧪 Analyzing scene lighting...")
-        enhc_img, p_time = enhancer.enhance_image(img_input)
+        enhc_img, pt1 = enhancer_1.enhance_image(img_input)
+        enhc_img, pt2 = enhancer_1.enhance_image(enhc_img)
         enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
         enhc_img = torch.clamp(torch.from_numpy(enhc_img).float(), 0,1)
-        enhc_img = enhc_img.numpy()        
+        enhc_img = enhc_img.numpy()  
+        p_time = pt1 + pt2
         st.write("🎨 Balancing color channels...")
         st.write("✅ Ready for download!")
         status.update(label=f"✨ Magic Done in {p_time:.0f}s!", state="complete", expanded=False)
