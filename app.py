@@ -85,12 +85,12 @@ if uploaded_file is not None:
         try:
             st.write("🧪 Analyzing scene lighting...")
             # Run Enhancer (Ensure enhancer_2 uses the model correctly)
-            raw_output, p_time = enhancer_2.enhance_image(img_input)
-            
+            raw_output, pt1 = enhancer_1.enhance_image(img_input)
+            raw_output, pt2 = enhancer_2.enhance_image(raw_output)
             st.write("🎨 Balancing color channels...")
             # Convert to uint8 RGB for display
             enhc_img_display = process_output_for_display(raw_output)
-            
+            p_time = pt1 + pt2
             status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
         except Exception as e:
             status.update(label="❌ Error occurred during enhancement", state="error")
