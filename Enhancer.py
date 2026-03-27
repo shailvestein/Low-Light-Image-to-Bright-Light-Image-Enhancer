@@ -58,8 +58,8 @@ class Enhancer:
     def enhance_image(self, img):
         start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        patch_size = 512 # Run inference over this patch size
-        stride = 256  # Essential 50% overlap for spline blending
+        patch_size = 256 # Run inference over this patch size
+        stride = 128  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
         pad_h = (patch_size - h % stride) % stride + (patch_size - stride)
@@ -80,7 +80,7 @@ class Enhancer:
         with torch.no_grad():
             for batch in loader:
                 out1 = self.model1(batch.to(self.device))
-                R, L, out2 = self.model2(out1)
+                _, _, out2 = self.model2(out1)
                 enhanced_list.extend([p.cpu() for p in out2])
         output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
         return output, time.time()-start_time
