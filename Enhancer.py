@@ -59,9 +59,9 @@ class Enhancer:
         # 4. Safer Contrast Adjustment (Only if needed)
         # Agar image bohot dark lag rahi hai tabhi use karein
         # Isko comment karke check karein pehle white screen hat rahi hai ya nahi
-        # p98 = np.percentile(img_np, 98)
-        # if 0.01 < p98 < 0.9: 
-        #     img_np = np.clip(img_np / (p98 + 1e-6), 0, 1)
+        p98 = np.percentile(img_np, 98)
+        if 0.01 < p98 < 0.9: 
+            img_np = np.clip(img_np / (p98 + 1e-6), 0, 1)
     
         # 5. Final Conversion
         final_img = (img_np * 255.0).astype(np.uint8)
@@ -74,7 +74,7 @@ class Enhancer:
         start_time = time.time()
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         patch_size = 256 # Run inference over this patch size
-        stride = 128  # Essential 50% overlap for spline blending
+        stride = 64  # Essential 50% overlap for spline blending
         h, w, _ = img.shape
         # Padding to match stride logic
         pad_h = (patch_size - h % stride) % stride + (patch_size - stride)
