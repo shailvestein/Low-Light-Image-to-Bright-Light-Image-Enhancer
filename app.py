@@ -30,21 +30,6 @@ def get_enhancer():
 
 enhancer_1, enhancer_2 = get_enhancer()
 
-# --- 4. HELPERS ---
-def process_output_for_display(img_data):
-    """Converts model output to a display-ready uint8 RGB image."""
-    # Agar input torch tensor hai
-    if torch.is_tensor(img_data):
-        img_data = img_data.detach().cpu().numpy()
-    
-    # Range handling to prevent white/black screen
-    if img_data.max() <= 1.01:
-        img_data = (img_data * 255.0).clip(0, 255).astype(np.uint8)
-    else:
-        img_data = img_data.clip(0, 255).astype(np.uint8)
-    
-    return img_data
-
 def get_webp_bytes(image_uint8, quality=90):
     """Safely converts uint8 numpy array to WebP bytes."""
     try:
@@ -74,7 +59,7 @@ if uploaded_file is not None:
     # Load Image
     file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
     img_bgr = cv2.imdecode(file_bytes, 1)
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    img_rgb_raw = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     # img_input = pre_process_resize(img_rgb_raw, target_width=1024)
 
     # --- FANCY PROCESSING ---
@@ -85,13 +70,12 @@ if uploaded_file is not None:
         try:
             st.write("🧪 Analyzing scene lighting...")
             # Run Enhancer (Ensure enhancer_2 uses the model correctly)
-            raw_output, pt1 = enhancer_1.enhance_image(img_rgb/255.0)
-            raw_output, pt2 = enhancer_2.enhance_image(raw_output)
+            raw_output, p_time = enhancer_2.enhance_image(img_rgb_raw)
+            
             st.write("🎨 Balancing color channels...")
             # Convert to uint8 RGB for display
-            raw_output = raw_output.permute(1, 2, 0).detach().cpu().numpy()
             enhc_img_display = process_output_for_display(raw_output)
-            p_time = pt1 + pt2
+            
             status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
         except Exception as e:
             status.update(label="❌ Error occurred during enhancement", state="error")
@@ -105,7 +89,7 @@ if uploaded_file is not None:
             st.image(img_input, use_container_width=True)
         with col2:
             st.markdown("<h5 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h5>", unsafe_allow_html=True)
-            st.image(raw_output, use_container_width=True)
+            st.image(enhc_img_display, use_container_width=True)
 
         # --- ACTIONS ---
         st.divider()
