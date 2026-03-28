@@ -71,9 +71,9 @@ if uploaded_file is not None:
         with st.status("🚀 AI Engine is working...", expanded=True) as status:
             enhc_img, p2 = enhancer_1.enhance_image(img_input)
             emhc_img = enhc_img * 255
-            enhc_img, p1 = enhancer_2.enhance_image(enhc_img)
+            # enhc_img, p1 = enhancer_2.enhance_image(enhc_img)
             enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
-            p_time = p1 + p2
+            p_time = p1
             status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
     
         # --- DISPLAY ---
