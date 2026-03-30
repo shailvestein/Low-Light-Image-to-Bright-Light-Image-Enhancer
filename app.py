@@ -9,7 +9,7 @@ from models import load_weights
 from Enhancer import Enhancer
 
 MAX_WIDTH, MAX_HEIGHT = 1280, 720
-MAX_FILE_SIZE = 5 * MAX_WIDTH * MAX_HEIGHT
+MAX_FILE_SIZE = 10 * MAX_WIDTH * MAX_HEIGHT
 
 # --- 1. SET PAGE CONFIG ---
 st.set_page_config(layout="wide", page_title="DeepSense AI Lab", page_icon="✨")
@@ -25,10 +25,9 @@ def trigger_reset():
 # --- 3. MODEL LOADING ---
 @st.cache_resource
 def get_enhancer():
-    gfmn_model, retinex_model = load_weights()
-    enhancer_1 = Enhancer(gfmn_model, name='gfmn', batch_size=2)
-    enhancer_2 = Enhancer(retinex_model, name='retinex', batch_size=2)
-    return enhancer_1, enhancer_2
+    model_fusion = load_weights()
+    enhancer = Enhancer(model_fusion, batch_size=2)
+    return enhancer
 
 enhancer_1, enhancer_2 = get_enhancer()
 
@@ -69,12 +68,9 @@ if uploaded_file is not None:
     
         # --- PROCESSING ---
         with st.status("🚀 AI Engine is working...", expanded=True) as status:
-            # enhc_img, p1 = enhancer_1.enhance_image(img_input)
-            # emhc_img = enhc_img * 255
-            enhc_img, p2 = enhancer_2.enhance_image(img_input)
+            enhc_img, p_time = enhancer.enhance_image(img_input)
             emhc_img = enhc_img * 255
             enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
-            p_time = p2
             status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
     
         # --- DISPLAY ---
