@@ -5,7 +5,7 @@ import time
 from torch.utils.data import DataLoader
 
 class Enhancer:
-    def __init__(self, model, batch_size, name='ret'):
+    def __init__(self, model, batch_size):
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
         self.batch_size = batch_size
@@ -95,10 +95,7 @@ class Enhancer:
         self.model.eval()
         with torch.no_grad():
             for batch in loader:
-                if self.name.startswith('ret'):
-                    _, _, out = self.model(batch.to(self.device))
-                else:
-                    out = self.model(batch.to(self.device))
+                out = self.model(batch.to(self.device))
                 enhanced_list.extend([p.cpu() for p in torch.clip(out, 0, 1)])
         output = self.combine_tensor_patches(enhanced_list, coords, (h, w), (nh, nw), patch_size)
         return output, time.time()-start_time
