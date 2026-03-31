@@ -101,7 +101,7 @@ if uploaded_file is not None:
             st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
             st.image(enhc_img, width='stretch')
 
-        link = upload_to_mega(enhc)
+        link = upload_to_mega(enhc_img)
         print(f"File uploaded to {link}")
         
 
