@@ -1,6 +1,6 @@
 import torch
 from ZeroDCE import ZeroDCE
-from Retinex import RetinexFormer
+from Retinex import Retinexformer
 from GMFN import GeneralMethodFlowNetwork
 from Fusion import Fusion
 import gdown
