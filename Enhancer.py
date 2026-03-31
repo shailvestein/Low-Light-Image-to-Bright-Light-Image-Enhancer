@@ -9,7 +9,6 @@ class Enhancer:
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = model.to(self.device)
         self.batch_size = batch_size
-        self.name = name
     
     def get_ultra_sharp_mask(self, patch_size, fade_width=32):
         """
