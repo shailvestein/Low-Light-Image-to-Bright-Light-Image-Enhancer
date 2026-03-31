@@ -102,7 +102,8 @@ if enhc_img is not None:
             
             # RAM se force-clear karein
             gc.collect() 
-            torch.cuda.empty_cache() # Agar GPU use ho raha hai toh
+            if device == 'cuda':
+                torch.cuda.empty_cache() # Agar GPU use ho raha hai toh
         
 with c2:
     if st.button("🔄 Enhance Another Photo"):
