@@ -4,7 +4,7 @@ from Retinex import Retinexformer
 from GMFN import GeneralMethodFlowNetwork
 from Fusion import Fusion
 import gdown
-
+import os
 
 device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 print(f"Device: {device}")
