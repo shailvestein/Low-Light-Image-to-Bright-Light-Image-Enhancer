@@ -55,7 +55,7 @@ def load_weights():
     model_gmfn.load_state_dict(state_dict)
     
     download_weights(fusion_model_id, fusion_model_name)
-    model_fusion = Fusion(model_zero, model_Ret, model_gmfn)
+    model_fusion = Fusion(model_zero, model_retinex, model_gmfn)
     state_dict = torch.load(fusion_model_name, map_location=device)
     model_fusion.load_state_dict(state_dict)
 
