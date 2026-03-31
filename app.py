@@ -7,6 +7,7 @@ import gc
 from PIL import Image
 from models import load_weights
 from Enhancer import Enhancer
+import torch
 
 MAX_WIDTH, MAX_HEIGHT = 1920, 1080
 MAX_FILE_SIZE = 10 * MAX_WIDTH * MAX_HEIGHT
@@ -102,8 +103,7 @@ if enhc_img is not None:
             
             # RAM se force-clear karein
             gc.collect() 
-            if device == 'cuda':
-                torch.cuda.empty_cache() # Agar GPU use ho raha hai toh
+            torch.cuda.empty_cache() # Agar GPU use ho raha hai toh
         
 with c2:
     if st.button("🔄 Enhance Another Photo"):
