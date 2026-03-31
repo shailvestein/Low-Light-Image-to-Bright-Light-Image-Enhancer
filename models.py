@@ -5,6 +5,7 @@ from GMFN import GeneralMethodFlowNetwork
 from Fusion import Fusion
 import gdown
 import os
+import streamlit as st
 
 device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 print(f"Device: {device}")
