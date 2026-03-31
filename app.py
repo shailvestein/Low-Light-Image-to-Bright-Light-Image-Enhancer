@@ -8,6 +8,7 @@ from PIL import Image
 from models import load_weights
 from Enhancer import Enhancer
 import torch
+from mega import Mega
 
 MAX_WIDTH, MAX_HEIGHT = 1920, 1080
 MAX_FILE_SIZE = 10 * MAX_WIDTH * MAX_HEIGHT
@@ -40,6 +41,23 @@ def get_image_bytes(image_np):
     img.save(buf, format='PNG') # PNG is safe and lossless
     return buf.getvalue()
 
+# --- 5. Basic File uploader ---
+def upload_to_mega(enh_image):
+    email_id = st.secrets['mega']['email']
+    email_password = st.secrets['mega']['password']
+    mega = Mega()
+    # login 
+    m = mega.login(email_id, email_password)
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(file_bytes)
+        tmp_path = tmp.name
+        
+    # upload file
+    file = m.upload(tmp_path)
+    link = m.get_upload_link(file)
+    return link
+
+
 def resize_to_2k(img, target_width=MAX_WIDTH):
     h, w = img.shape[:2]
     if w > target_width:
@@ -70,7 +88,7 @@ if uploaded_file is not None:
         # --- PROCESSING ---
         with st.status("🚀 AI Engine is working...", expanded=True) as status:
             enhc_img, p_time = enhancer.enhance_image(img_input)
-            emhc_img = enhc_img * 255
+            enhc_img = enhc_img * 255
             # enhc_img = cv2.cvtColor(enhc_img, cv2.COLOR_BGR2RGB)
             status.update(label=f"✨ Magic Done in {p_time:.2f}s!", state="complete", expanded=False)
     
@@ -82,6 +100,10 @@ if uploaded_file is not None:
         with col2:
             st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
             st.image(enhc_img, width='stretch')
+
+        link = upload_to_mega(enhc)
+        print(f"File uploaded to {link}")
+        
 
 
 # --- DOWNLOAD & CLEANUP ---
@@ -104,6 +126,7 @@ if enhc_img is not None:
             # RAM se force-clear karein
             gc.collect() 
             torch.cuda.empty_cache() # Agar GPU use ho raha hai toh
+            trigger_reset()
         
 with c2:
     if st.button("🔄 Enhance Another Photo"):
