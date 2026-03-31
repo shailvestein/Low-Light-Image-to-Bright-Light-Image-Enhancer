@@ -20,4 +20,4 @@ lpips==0.1.4
 # To download models from GDrive
 gdown
 einops
-pydrive2
+mega.py
