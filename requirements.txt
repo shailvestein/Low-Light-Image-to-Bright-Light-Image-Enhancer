@@ -20,5 +20,5 @@ lpips==0.1.4
 # To download models from GDrive
 gdown
 einops
-mega.py
-pycryptodome
+mega.py==1.0.8
+pycryptodome==3.14.1
