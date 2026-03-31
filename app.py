@@ -29,7 +29,7 @@ def get_enhancer():
     enhancer = Enhancer(model_fusion, batch_size=2)
     return enhancer
 
-enhancer_1, enhancer_2 = get_enhancer()
+enhancer = get_enhancer()
 
 # --- 4. SIMPLE DOWNLOAD HELPER ---
 def get_image_bytes(image_np):
