@@ -45,7 +45,7 @@ def load_weights():
     model_zero.load_state_dict(state_dict)
     
     download_weights(retinex_model_id, retinex_model_name)
-    model_retinex = RetinexFormer()
+    model_retinex = Retinexformer()
     state_dict = torch.load(retinex_model_name, map_location=device)
     model_retinex.load_state_dict(state_dict)
 
