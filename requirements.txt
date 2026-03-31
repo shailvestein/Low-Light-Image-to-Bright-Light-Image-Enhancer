@@ -21,3 +21,4 @@ lpips==0.1.4
 gdown
 einops
 mega.py
+pycryptodome
