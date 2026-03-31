@@ -42,7 +42,7 @@ def download_weights(file_id, model_name):
 def load_weights():
     download_weights(zerodce_model_id, zerodce_model_name)
     model_zero = ZeroDCE()
-    state_dict = torch.load(zero_model_name, map_location=device)
+    state_dict = torch.load(zerodce_model_name, map_location=device)
     model_zero.load_state_dict(state_dict)
     
     download_weights(retinex_model_id, retinex_model_name)
