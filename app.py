@@ -8,7 +8,6 @@ from PIL import Image
 from models import load_weights
 from Enhancer import Enhancer
 import torch
-from mega import Mega
 
 MAX_WIDTH, MAX_HEIGHT = 1920, 1080
 MAX_FILE_SIZE = 10 * MAX_WIDTH * MAX_HEIGHT
@@ -40,22 +39,6 @@ def get_image_bytes(image_np):
     buf = io.BytesIO()
     img.save(buf, format='PNG') # PNG is safe and lossless
     return buf.getvalue()
-
-# --- 5. Basic File uploader ---
-def upload_to_mega(enh_image):
-    email_id = st.secrets['mega']['email']
-    email_password = st.secrets['mega']['password']
-    mega = Mega()
-    # login 
-    m = mega.login(email_id, email_password)
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        tmp.write(file_bytes)
-        tmp_path = tmp.name
-        
-    # upload file
-    file = m.upload(tmp_path)
-    link = m.get_upload_link(file)
-    return link
 
 
 def resize_to_2k(img, target_width=MAX_WIDTH):
@@ -100,9 +83,6 @@ if uploaded_file is not None:
         with col2:
             st.markdown("<h4 style='text-align: center; color: #00d4ff;'>🌟 Enhanced</h4>", unsafe_allow_html=True)
             st.image(enhc_img, width='stretch')
-
-        # link = upload_to_mega(enhc_img)
-        # print(f"File uploaded to {link}")
         
 
 
